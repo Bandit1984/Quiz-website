@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quiz Drill Memorizer - Speed Drill & Exam Simulation</title>
+  <meta name="description" content="High-speed quiz memorization and practice tool featuring keyboard shortcuts, multi-quiz filtering, instant feedback, and analytics.">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="app-container">
+
+    <!-- Header -->
+    <header class="app-header">
+      <div class="brand">
+        <span class="brand-badge">SPEED DRILL</span>
+        <h1 id="brand-title" class="brand-title">Quiz Drill Memorizer</h1>
+      </div>
+      <div class="header-actions">
+        <button id="btn-manage-bank" class="btn-secondary" title="Manage or import Question Bank">
+          📚 Manage Bank
+        </button>
+        <button id="btn-restart" class="btn-secondary" title="Restart current quiz session (Press R)">
+          🔄 Restart
+        </button>
+      </div>
+    </header>
+
+    <!-- EMPTY STATE VIEW (Shown when no question bank is loaded) -->
+    <section id="empty-state-view" class="empty-state-card">
+      <div class="empty-icon">📂</div>
+      <h2>No Question Bank Loaded</h2>
+      <p class="empty-subtitle">
+        Upload your Question Bank file or paste your reference material to get started with instant drills and exams.
+      </p>
+
+      <div class="drop-zone" id="empty-drop-zone">
+        <span class="drop-zone-icon">📥</span>
+        <span class="drop-zone-text">Drag & drop your <strong>.txt</strong> or <strong>.md</strong> file here</span>
+        <span class="drop-zone-or">— or —</span>
+        <div class="empty-actions">
+          <label for="empty-file-input" class="btn-primary file-label-btn">
+            📁 Browse File
+          </label>
+          <input type="file" id="empty-file-input" accept=".txt,.md,.text" class="hidden-file-input">
+          <button id="empty-btn-paste" class="btn-secondary">
+            📋 Paste Text Material
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- MAIN APP CONTENT (Hidden when empty) -->
+    <div id="main-app-content" class="main-content-group hidden">
+      <!-- Quiz Filter Bar -->
+      <section id="quiz-filter-bar" class="quiz-filter-container">
+        <div class="filter-bar-header">
+          <span class="filter-title">Filter by Quiz:</span>
+          <button id="btn-filter-all" class="filter-chip active" data-quiz="all">
+            All (<span id="filter-all-count">0</span>)
+          </button>
+        </div>
+        <div id="filter-chips-list" class="filter-chips-list">
+          <!-- Dynamic quiz chips rendered here -->
+        </div>
+      </section>
+
+      <!-- Control Bar -->
+      <div class="control-bar">
+        <!-- Segmented Mode Control -->
+        <div class="segmented-control">
+          <button id="mode-drill" class="segmented-btn active" title="Instant right/wrong feedback per question">
+            ⚡ Fast Drill Mode
+          </button>
+          <button id="mode-exam" class="segmented-btn" title="Simulate exam uninterrupted">
+            📝 Exam Simulation
+          </button>
+        </div>
+
+        <!-- Controls & Settings -->
+        <div class="options-group">
+          <label for="order-select" style="display:none;">Question Order</label>
+          <select id="order-select" class="select-control" title="Choose question sequence">
+            <option value="original">Original Order</option>
+            <option value="shuffle">Random Shuffle</option>
+            <option value="mistake">Mistake Drill (Missed Only)</option>
+          </select>
+
+          <label for="autoadvance-select" style="display:none;">Auto Advance</label>
+          <select id="autoadvance-select" class="select-control" title="Auto advance delay after selecting an answer">
+            <option value="600">Auto Next: Fast (0.6s)</option>
+            <option value="1200">Auto Next: Medium (1.2s)</option>
+            <option value="0">Auto Next: Manual (Off)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- HUD Stats Bar -->
+      <div class="stats-hud">
+        <div class="stat-card">
+          <span id="hud-streak" class="stat-value streak">0🔥</span>
+          <span class="stat-label">Current Streak</span>
+        </div>
+        <div class="stat-card">
+          <span id="hud-accuracy" class="stat-value accuracy">100%</span>
+          <span class="stat-label">Accuracy</span>
+        </div>
+        <div class="stat-card">
+          <span id="hud-timer" class="stat-value">00:00</span>
+          <span class="stat-label">Elapsed Time</span>
+        </div>
+        <div class="stat-card">
+          <span id="hud-avg-speed" class="stat-value">0.0s</span>
+          <span class="stat-label">Avg Speed / Q</span>
+        </div>
+      </div>
+
+      <!-- Progress Bar -->
+      <div class="progress-container">
+        <div id="progress-bar" class="progress-fill"></div>
+      </div>
+
+      <!-- MAIN QUIZ VIEW -->
+      <main id="quiz-view" class="quiz-card">
+        <div class="question-meta">
+          <div class="meta-left">
+            <span id="q-quiz-title" class="q-quiz-badge">Quiz Title</span>
+            <span id="q-badge" class="q-badge">Question 1 of 0</span>
+          </div>
+          <span id="q-counter">Progress: 1 / 0</span>
+        </div>
+
+        <div id="multi-select-badge" class="multi-select-indicator hidden">
+          ℹ️ Multiple Answers — Select all that apply
+        </div>
+
+        <div id="question-text" class="question-text">
+          Loading question...
+        </div>
+
+        <!-- Options -->
+        <div id="options-list" class="options-list">
+          <!-- Rendered dynamically -->
+        </div>
+
+        <!-- Instant Feedback Box (Fast Drill Mode) -->
+        <div id="feedback-box" class="feedback-box hidden">
+          <!-- Dynamic message -->
+        </div>
+
+        <!-- Action Navigation -->
+        <div class="action-controls">
+          <button id="btn-prev" class="btn-secondary">
+            ⬅️ Prev
+          </button>
+          <div class="action-right">
+            <button id="btn-submit-answer" class="btn-accent hidden">
+              ✓ Submit Answer
+            </button>
+            <button id="btn-next" class="btn-primary">
+              <span>Next</span> ➔
+            </button>
+          </div>
+        </div>
+      </main>
+
+      <!-- KEYBOARD LEGEND -->
+      <footer class="keyboard-bar">
+        <div class="kbd-item"><kbd>A</kbd>–<kbd>F</kbd> / <kbd>1</kbd>–<kbd>6</kbd> Select Answer</div>
+        <div class="kbd-item"><kbd>Space</kbd> / <kbd>Enter</kbd> Next Question / Submit</div>
+        <div class="kbd-item"><kbd>R</kbd> Restart Quiz</div>
+      </footer>
+
+      <!-- SUMMARY / RESULTS VIEW (HIDDEN INITIALLY) -->
+      <section id="summary-view" class="summary-container hidden">
+        <div class="summary-header">
+          <h2>Drill Session Complete!</h2>
+          <div id="summary-score" class="score-badge">0 / 0</div>
+          <p id="summary-subtitle" style="color: var(--text-secondary);">Here is your performance breakdown.</p>
+        </div>
+
+        <div class="summary-stats-grid">
+          <div class="stat-card">
+            <span id="summary-accuracy" class="stat-value accuracy">100%</span>
+            <span class="stat-label">Accuracy Rate</span>
+          </div>
+          <div class="stat-card">
+            <span id="summary-time" class="stat-value">00:00</span>
+            <span class="stat-label">Total Time</span>
+          </div>
+          <div class="stat-card">
+            <span id="summary-streak" class="stat-value streak">0🔥</span>
+            <span class="stat-label">Max Streak</span>
+          </div>
+          <div class="stat-card">
+            <span id="summary-avg-speed" class="stat-value">0.0s</span>
+            <span class="stat-label">Avg Speed / Q</span>
+          </div>
+        </div>
+
+        <div class="summary-actions">
+          <button id="btn-retry-mistakes" class="btn-primary" style="background: linear-gradient(135deg, #f59e0b, #ef4444);">
+            🎯 Retake Missed Questions
+          </button>
+          <button id="btn-restart-quiz" class="btn-primary">
+            ⚡ Start New Full Drill
+          </button>
+        </div>
+
+        <!-- Full Question Review List -->
+        <div class="review-section">
+          <h3 id="review-title" style="font-size: 1.1rem; color: var(--text-primary);">Detailed Review</h3>
+          <div id="review-list">
+            <!-- Rendered dynamically -->
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- BANK MANAGER MODAL DIALOG -->
+    <dialog id="bank-modal" class="bank-dialog">
+      <div class="modal-container">
+        <div class="modal-header">
+          <div class="modal-title-group">
+            <span class="brand-badge">CONTENT</span>
+            <h3>Question Bank Manager</h3>
+          </div>
+          <button id="modal-close-btn" class="modal-close-icon" title="Close modal">&times;</button>
+        </div>
+
+        <div class="modal-body">
+          <div id="bank-status-banner" class="bank-status-banner">
+            <span id="bank-status-text">No question bank currently loaded.</span>
+          </div>
+
+          <div class="modal-input-actions">
+            <label for="modal-file-input" class="btn-secondary file-label-btn">
+              📁 Choose File (.txt, .md)
+            </label>
+            <input type="file" id="modal-file-input" accept=".txt,.md,.text" class="hidden-file-input">
+            <span class="modal-hint">or paste the material below:</span>
+          </div>
+
+          <textarea id="bank-textarea" class="bank-textarea" placeholder="Paste your Question Bank reference material here... (e.g. ## Quiz 1&#10;### Question 1&#10;What is...?&#10;A. Option 1&#10;B. Option 2 **[CORRECT]**)"></textarea>
+
+          <div id="parse-preview-box" class="parse-preview-box hidden">
+            <div class="preview-header">
+              <span class="preview-badge">Preview</span>
+              <span id="preview-summary-text">0 Quizzes, 0 Questions parsed</span>
+            </div>
+            <div id="preview-quizzes-list" class="preview-quizzes-list"></div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <div class="modal-footer-left">
+            <button id="btn-clear-bank" class="btn-danger hidden">
+              🗑️ Delete Bank
+            </button>
+          </div>
+          <div class="modal-footer-right">
+            <button id="btn-cancel-modal" class="btn-secondary">
+              Cancel
+            </button>
+            <button id="btn-save-bank" class="btn-primary" disabled>
+              💾 Save & Load Bank
+            </button>
+          </div>
+        </div>
+      </div>
+    </dialog>
+
+  </div>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

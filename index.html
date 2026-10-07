@@ -68,12 +68,25 @@
           <span id="pause-btn-text">Pause</span>
         </button>
 
+        <!-- Hide Top Bars Toggle -->
+        <button id="btn-toggle-bars" class="btn-outline" title="Hide Top Bars for maximum vertical screen space (Press H)">
+          <span id="toggle-bars-icon">👁️</span>
+          <span id="toggle-bars-text">Hide Bars</span>
+          <kbd class="mini-kbd">H</kbd>
+        </button>
+
         <!-- Zen Mode Toggle -->
         <button id="btn-fullscreen" class="btn-outline" title="Toggle Fullscreen Zen Mode (Shift+F)">
           <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
           </svg>
           <span class="btn-text">Zen Mode</span>
+        </button>
+
+        <!-- Keybinds Manager -->
+        <button id="btn-keybinds" class="btn-secondary" title="Configure Keyboard Shortcuts & Option Keys">
+          <span class="btn-icon">⌨️</span>
+          <span class="btn-text">Keys</span>
         </button>
 
         <!-- Bank Manager -->
@@ -182,6 +195,35 @@
               <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
             </svg>
             Exit Zen
+          </button>
+        </div>
+      </div>
+
+      <!-- Sleek Compact Top Bar (Visible when top bars are hidden) -->
+      <div id="compact-top-bar" class="compact-top-bar hidden">
+        <div class="compact-meta-left">
+          <button id="btn-show-bars" class="btn-secondary btn-sm" title="Show Top Bars (Press H)">
+            <span>👁️ Show Bars</span>
+            <kbd class="mini-kbd">H</kbd>
+          </button>
+          <span id="compact-deck-title" class="badge-outline">Title</span>
+          <span id="compact-counter" class="compact-counter">1 / 100</span>
+        </div>
+        <div class="compact-meta-right">
+          <div class="zoom-controls zoom-controls-compact" title="Adjust Text Size ([ or ])">
+            <button id="btn-zoom-out-compact" class="btn-secondary btn-sm zoom-btn" title="Decrease Text Size ([)">A−</button>
+            <span id="zoom-level-label-compact" class="zoom-level-label">100%</span>
+            <button id="btn-zoom-in-compact" class="btn-secondary btn-sm zoom-btn" title="Increase Text Size (])">A+</button>
+          </div>
+          <button id="btn-pause-compact" class="btn-secondary btn-sm" title="Pause / Resume Session (P)">
+            <span id="pause-compact-icon">⏸️</span>
+            <span id="pause-compact-text">Pause</span>
+          </button>
+          <button id="btn-fullscreen-compact" class="btn-outline btn-sm" title="Zen Mode (Shift+F)">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+            </svg>
+            <span>Zen</span>
           </button>
         </div>
       </div>
@@ -411,9 +453,11 @@
       <!-- KEYBOARD LEGEND -->
       <footer id="keyboard-bar" class="keyboard-bar">
         <div id="kbd-quiz-legend" class="kbd-group">
-          <div class="kbd-item"><kbd>D</kbd> <kbd>F</kbd> <kbd>J</kbd> <kbd>K</kbd> Select Option</div>
+          <div class="kbd-item"><kbd>1-4</kbd> / <kbd>Q-R</kbd> / <kbd>D-K</kbd> Select Option</div>
           <div class="kbd-item"><kbd>Space</kbd> / <kbd>Enter</kbd> Next / Submit</div>
-          <div class="kbd-item"><kbd>R</kbd> Restart</div>
+          <div class="kbd-item"><kbd>H</kbd> Hide/Show Bars</div>
+          <div class="kbd-item"><kbd>P</kbd> Pause</div>
+          <div class="kbd-item"><kbd>[</kbd> / <kbd>]</kbd> Zoom</div>
           <div class="kbd-item"><kbd>Shift</kbd>+<kbd>F</kbd> Zen Mode</div>
         </div>
         <div id="kbd-fc-legend" class="kbd-group hidden">
@@ -421,7 +465,9 @@
           <div class="kbd-item"><kbd>←</kbd> / <kbd>→</kbd> Prev / Next</div>
           <div class="kbd-item"><kbd>1</kbd> Need Review</div>
           <div class="kbd-item"><kbd>2</kbd> Mastered</div>
-          <div class="kbd-item"><kbd>R</kbd> Restart</div>
+          <div class="kbd-item"><kbd>H</kbd> Hide/Show Bars</div>
+          <div class="kbd-item"><kbd>P</kbd> Pause</div>
+          <div class="kbd-item"><kbd>[</kbd> / <kbd>]</kbd> Zoom</div>
           <div class="kbd-item"><kbd>Shift</kbd>+<kbd>F</kbd> Zen Mode</div>
         </div>
       </footer>
@@ -594,6 +640,89 @@
             </button>
             <button id="btn-save-active-bank" class="btn-primary" disabled>
               Save & Load Bank
+            </button>
+          </div>
+        </div>
+      </div>
+    </dialog>
+
+    <!-- KEYBINDS CONFIGURATION MODAL DIALOG -->
+    <dialog id="keybinds-modal" class="bank-dialog">
+      <div class="modal-container keybinds-modal-container">
+        <div class="modal-header">
+          <div class="modal-title-group">
+            <span class="brand-badge">SHORTCUTS</span>
+            <h3>Keyboard Controls & Keybinds</h3>
+          </div>
+          <button id="keybinds-close-btn" class="modal-close-icon" title="Close modal">&times;</button>
+        </div>
+
+        <div class="modal-body">
+          <p class="keybinds-info-p">
+            Multiple key combinations (Numbers, QWERTY, Home Row) work concurrently to select options. You can pick your preferred key style for button badges, or customize them below.
+          </p>
+
+          <div class="keybind-preset-group">
+            <label class="keybind-preset-title">Key Badge Display Style:</label>
+            <div class="keybind-radio-list">
+              <label class="keybind-radio-item">
+                <input type="radio" name="keybind-preset" value="numbers" checked>
+                <span class="radio-label-text"><strong>Numbers:</strong> 1, 2, 3, 4, 5, 6, 7, 8, 9, 0</span>
+              </label>
+              <label class="keybind-radio-item">
+                <input type="radio" name="keybind-preset" value="qwerty">
+                <span class="radio-label-text"><strong>QWERTY:</strong> Q, W, E, R, T, Y, U, I, O, P</span>
+              </label>
+              <label class="keybind-radio-item">
+                <input type="radio" name="keybind-preset" value="homerow">
+                <span class="radio-label-text"><strong>Home Row:</strong> D, F, J, K, L, ;, A, S, G, Z</span>
+              </label>
+              <label class="keybind-radio-item">
+                <input type="radio" name="keybind-preset" value="custom">
+                <span class="radio-label-text"><strong>Custom Keys:</strong> Define your own keys below</span>
+              </label>
+            </div>
+          </div>
+
+          <div id="custom-keys-container" class="custom-keys-container hidden">
+            <label for="custom-keys-input" class="custom-keys-label">Custom Key Sequence (one character per option):</label>
+            <input type="text" id="custom-keys-input" class="custom-keys-input" placeholder="e.g. 12345 or ASDFG or ZXCVB" maxlength="15">
+            <span class="modal-hint">Enter keys in order from option 1 to 10 (case-insensitive).</span>
+          </div>
+
+          <div class="keybind-reference-table">
+            <div class="keybind-ref-row">
+              <span class="ref-action">Hide / Show Top Bars</span>
+              <kbd class="mini-kbd">H</kbd>
+            </div>
+            <div class="keybind-ref-row">
+              <span class="ref-action">Zoom In / Zoom Out</span>
+              <span><kbd class="mini-kbd">[</kbd> / <kbd class="mini-kbd">]</kbd></span>
+            </div>
+            <div class="keybind-ref-row">
+              <span class="ref-action">Pause / Resume</span>
+              <kbd class="mini-kbd">P</kbd>
+            </div>
+            <div class="keybind-ref-row">
+              <span class="ref-action">Zen Mode Toggle</span>
+              <kbd class="mini-kbd">Shift+F</kbd>
+            </div>
+            <div class="keybind-ref-row">
+              <span class="ref-action">Next Question / Flip Card</span>
+              <span><kbd class="mini-kbd">Space</kbd> or <kbd class="mini-kbd">Enter</kbd></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <div class="modal-footer-left">
+            <button id="btn-reset-keybinds" class="btn-secondary">
+              Reset Defaults
+            </button>
+          </div>
+          <div class="modal-footer-right">
+            <button id="btn-save-keybinds" class="btn-primary">
+              Save Keybinds
             </button>
           </div>
         </div>

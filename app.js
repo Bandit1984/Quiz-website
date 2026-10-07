@@ -58,15 +58,27 @@ class QuizApp {
     // Pause state
     this.isPaused = false;
 
-    // Text Zoom Font Scaling
-    this.fontScaleLevels = [0.85, 0.92, 1.0, 1.15, 1.30, 1.45];
-    this.fontScaleIndex = 2; // Default 1.0
+    // Text Zoom Font Scaling (Expanded 75% to 175%)
+    this.fontScaleLevels = [0.75, 0.85, 1.0, 1.15, 1.35, 1.55, 1.75];
+    this.fontScaleIndex = 2; // Default 1.0 (100%)
     this.storageKeyFontScale = 'quiz_drill_font_scale';
+
+    // Collapsed Top Bars State
+    this.storageKeyTopBarsHidden = 'quiz_drill_top_bars_hidden';
+    this.isTopBarsHidden = localStorage.getItem(this.storageKeyTopBarsHidden) === 'true';
+
+    // Keybinds Configuration
+    this.storageKeyKeybindStyle = 'quiz_drill_keybind_style';
+    this.storageKeyCustomKeys = 'quiz_drill_custom_keys';
+    this.keybindStyle = localStorage.getItem(this.storageKeyKeybindStyle) || 'numbers'; // 'numbers' | 'qwerty' | 'homerow' | 'custom'
+    this.customKeys = localStorage.getItem(this.storageKeyCustomKeys) || '1234567890';
 
     // DOM Elements & Theme
     this.initDOMElements();
     this.initTheme();
     this.initFontScale();
+    this.initTopBarsVisibility();
+    this.initKeybinds();
     this.bindEvents();
 
     // Initialize Banks or Empty State
@@ -84,6 +96,11 @@ class QuizApp {
     this.btnManageBank = document.getElementById('btn-manage-bank');
     this.restartBtn = document.getElementById('btn-restart');
 
+    // Hide / Show Top Bars Button
+    this.btnToggleBars = document.getElementById('btn-toggle-bars');
+    this.toggleBarsIcon = document.getElementById('toggle-bars-icon');
+    this.toggleBarsText = document.getElementById('toggle-bars-text');
+
     // Zoom & Pause Controls
     this.btnZoomOut = document.getElementById('btn-zoom-out');
     this.zoomLevelLabel = document.getElementById('zoom-level-label');
@@ -91,6 +108,29 @@ class QuizApp {
     this.btnPause = document.getElementById('btn-pause');
     this.pauseBtnIcon = document.getElementById('pause-btn-icon');
     this.pauseBtnText = document.getElementById('pause-btn-text');
+
+    // Compact Top Bar Elements
+    this.compactTopBar = document.getElementById('compact-top-bar');
+    this.btnShowBars = document.getElementById('btn-show-bars');
+    this.compactDeckTitle = document.getElementById('compact-deck-title');
+    this.compactCounter = document.getElementById('compact-counter');
+    this.btnZoomOutCompact = document.getElementById('btn-zoom-out-compact');
+    this.zoomLevelLabelCompact = document.getElementById('zoom-level-label-compact');
+    this.btnZoomInCompact = document.getElementById('btn-zoom-in-compact');
+    this.btnPauseCompact = document.getElementById('btn-pause-compact');
+    this.pauseCompactIcon = document.getElementById('pause-compact-icon');
+    this.pauseCompactText = document.getElementById('pause-compact-text');
+    this.btnFullscreenCompact = document.getElementById('btn-fullscreen-compact');
+
+    // Keybinds Elements
+    this.btnKeybinds = document.getElementById('btn-keybinds');
+    this.keybindsModal = document.getElementById('keybinds-modal');
+    this.keybindsCloseBtn = document.getElementById('keybinds-close-btn');
+    this.btnResetKeybinds = document.getElementById('btn-reset-keybinds');
+    this.btnSaveKeybinds = document.getElementById('btn-save-keybinds');
+    this.customKeysContainer = document.getElementById('custom-keys-container');
+    this.customKeysInput = document.getElementById('custom-keys-input');
+    this.keybindRadioInputs = document.querySelectorAll('input[name="keybind-preset"]');
 
     // Zen Fullscreen Bar
     this.fullscreenZenBar = document.getElementById('fullscreen-zen-bar');
@@ -317,11 +357,12 @@ class QuizApp {
 
   applyFontScale() {
     const scale = this.fontScaleLevels[this.fontScaleIndex] || 1.0;
-    document.documentElement.style.setProperty('--font-scale', scale);
+    document.documentElement.style.setProperty('--font-scale', scale.toString());
     const labelText = Math.round(scale * 100) + '%';
     if (this.zoomLevelLabel) this.zoomLevelLabel.textContent = labelText;
     if (this.zoomLevelLabelZen) this.zoomLevelLabelZen.textContent = labelText;
-    localStorage.setItem(this.storageKeyFontScale, scale);
+    if (this.zoomLevelLabelCompact) this.zoomLevelLabelCompact.textContent = labelText;
+    localStorage.setItem(this.storageKeyFontScale, scale.toString());
   }
 
   zoomIn() {
@@ -338,6 +379,114 @@ class QuizApp {
     }
   }
 
+  initTopBarsVisibility() {
+    this.applyTopBarsVisibility();
+  }
+
+  toggleTopBars() {
+    this.isTopBarsHidden = !this.isTopBarsHidden;
+    this.applyTopBarsVisibility();
+    localStorage.setItem(this.storageKeyTopBarsHidden, this.isTopBarsHidden.toString());
+  }
+
+  applyTopBarsVisibility() {
+    if (this.isTopBarsHidden) {
+      document.body.classList.add('top-bars-hidden');
+      if (this.toggleBarsText) this.toggleBarsText.textContent = 'Show Bars';
+      if (this.compactTopBar) this.compactTopBar.classList.remove('hidden');
+    } else {
+      document.body.classList.remove('top-bars-hidden');
+      if (this.toggleBarsText) this.toggleBarsText.textContent = 'Hide Bars';
+      if (this.compactTopBar) this.compactTopBar.classList.add('hidden');
+    }
+    this.updateCompactMeta();
+  }
+
+  updateCompactMeta() {
+    if (this.mode === 'flashcards' && this.activeCards && this.activeCards.length > 0) {
+      const card = this.activeCards[this.currentIndex];
+      if (this.compactDeckTitle) this.compactDeckTitle.textContent = (card && card.deckTitle) || 'Deck';
+      if (this.compactCounter) this.compactCounter.textContent = `Card ${this.currentIndex + 1} / ${this.activeCards.length}`;
+    } else if (this.activeQuestions && this.activeQuestions.length > 0) {
+      const q = this.activeQuestions[this.currentIndex];
+      if (this.compactDeckTitle) this.compactDeckTitle.textContent = (q && q.quizTitle) || 'Quiz';
+      if (this.compactCounter) this.compactCounter.textContent = `${this.currentIndex + 1} / ${this.activeQuestions.length}`;
+    }
+  }
+
+  initKeybinds() {
+    if (this.keybindRadioInputs) {
+      this.keybindRadioInputs.forEach(radio => {
+        radio.checked = radio.value === this.keybindStyle;
+      });
+    }
+    if (this.customKeysInput) {
+      this.customKeysInput.value = this.customKeys;
+    }
+    if (this.customKeysContainer) {
+      this.customKeysContainer.classList.toggle('hidden', this.keybindStyle !== 'custom');
+    }
+  }
+
+  openKeybindsModal() {
+    this.initKeybinds();
+    if (this.keybindsModal && typeof this.keybindsModal.showModal === 'function') {
+      this.keybindsModal.showModal();
+    }
+  }
+
+  closeKeybindsModal() {
+    if (this.keybindsModal && typeof this.keybindsModal.close === 'function') {
+      this.keybindsModal.close();
+    }
+  }
+
+  saveKeybindsFromModal() {
+    const checkedRadio = document.querySelector('input[name="keybind-preset"]:checked');
+    if (checkedRadio) {
+      this.keybindStyle = checkedRadio.value;
+      localStorage.setItem(this.storageKeyKeybindStyle, this.keybindStyle);
+    }
+    if (this.customKeysInput) {
+      const val = this.customKeysInput.value.trim().toUpperCase() || '1234567890';
+      this.customKeys = val;
+      localStorage.setItem(this.storageKeyCustomKeys, this.customKeys);
+    }
+    this.closeKeybindsModal();
+    if (this.mode !== 'flashcards' && this.activeQuestions && this.activeQuestions.length > 0) {
+      this.renderCurrentQuestion();
+    }
+  }
+
+  resetKeybindsToDefault() {
+    this.keybindStyle = 'numbers';
+    this.customKeys = '1234567890';
+    localStorage.setItem(this.storageKeyKeybindStyle, 'numbers');
+    localStorage.setItem(this.storageKeyCustomKeys, '1234567890');
+    this.initKeybinds();
+    if (this.mode !== 'flashcards' && this.activeQuestions && this.activeQuestions.length > 0) {
+      this.renderCurrentQuestion();
+    }
+  }
+
+  getActiveBadgeKeys() {
+    if (this.keybindStyle === 'numbers') {
+      return ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'];
+    }
+    if (this.keybindStyle === 'qwerty') {
+      return ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'];
+    }
+    if (this.keybindStyle === 'homerow') {
+      return ['D', 'F', 'J', 'K', 'L', ';', 'A', 'S', 'G', 'Z'];
+    }
+    if (this.keybindStyle === 'custom') {
+      const keys = (this.customKeys || '1234567890').toUpperCase().split('');
+      while (keys.length < 10) keys.push((keys.length + 1).toString());
+      return keys;
+    }
+    return ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'];
+  }
+
   togglePause() {
     this.isPaused = !this.isPaused;
     if (this.isPaused) {
@@ -352,11 +501,15 @@ class QuizApp {
       if (this.pauseBtnIcon) this.pauseBtnIcon.textContent = '▶️';
       if (this.pauseBtnText) this.pauseBtnText.textContent = 'Resume';
       if (this.pauseZenIcon) this.pauseZenIcon.textContent = '▶️';
+      if (this.pauseCompactIcon) this.pauseCompactIcon.textContent = '▶️';
+      if (this.pauseCompactText) this.pauseCompactText.textContent = 'Resume';
     } else {
       if (this.pauseOverlay) this.pauseOverlay.classList.add('hidden');
       if (this.pauseBtnIcon) this.pauseBtnIcon.textContent = '⏸️';
       if (this.pauseBtnText) this.pauseBtnText.textContent = 'Pause';
       if (this.pauseZenIcon) this.pauseZenIcon.textContent = '⏸️';
+      if (this.pauseCompactIcon) this.pauseCompactIcon.textContent = '⏸️';
+      if (this.pauseCompactText) this.pauseCompactText.textContent = 'Pause';
       if (!this.timerInterval) {
         this.timerInterval = setInterval(() => {
           this.timerSeconds++;
@@ -372,11 +525,47 @@ class QuizApp {
     if (this.btnZoomOut) this.btnZoomOut.addEventListener('click', () => this.zoomOut());
     if (this.btnZoomInZen) this.btnZoomInZen.addEventListener('click', () => this.zoomIn());
     if (this.btnZoomOutZen) this.btnZoomOutZen.addEventListener('click', () => this.zoomOut());
+    if (this.btnZoomInCompact) this.btnZoomInCompact.addEventListener('click', () => this.zoomIn());
+    if (this.btnZoomOutCompact) this.btnZoomOutCompact.addEventListener('click', () => this.zoomOut());
 
     // Pause Controls
     if (this.btnPause) this.btnPause.addEventListener('click', () => this.togglePause());
     if (this.btnPauseZen) this.btnPauseZen.addEventListener('click', () => this.togglePause());
+    if (this.btnPauseCompact) this.btnPauseCompact.addEventListener('click', () => this.togglePause());
     if (this.btnResumeSession) this.btnResumeSession.addEventListener('click', () => this.togglePause());
+
+    // Top Bars Visibility Controls
+    if (this.btnToggleBars) this.btnToggleBars.addEventListener('click', () => this.toggleTopBars());
+    if (this.btnShowBars) this.btnShowBars.addEventListener('click', () => this.toggleTopBars());
+
+    // Keybinds Modal Controls
+    if (this.btnKeybinds) this.btnKeybinds.addEventListener('click', () => this.openKeybindsModal());
+    if (this.keybindsCloseBtn) this.keybindsCloseBtn.addEventListener('click', () => this.closeKeybindsModal());
+    if (this.btnSaveKeybinds) this.btnSaveKeybinds.addEventListener('click', () => this.saveKeybindsFromModal());
+    if (this.btnResetKeybinds) this.btnResetKeybinds.addEventListener('click', () => this.resetKeybindsToDefault());
+    if (this.keybindRadioInputs) {
+      this.keybindRadioInputs.forEach(r => {
+        r.addEventListener('change', () => {
+          if (this.customKeysContainer) {
+            this.customKeysContainer.classList.toggle('hidden', r.value !== 'custom');
+          }
+        });
+      });
+    }
+    if (this.keybindsModal) {
+      this.keybindsModal.addEventListener('click', (e) => {
+        const rect = this.keybindsModal.getBoundingClientRect();
+        const isInDialog = (
+          rect.top <= e.clientY && e.clientY <= rect.top + rect.height &&
+          rect.left <= e.clientX && e.clientX <= rect.left + rect.width
+        );
+        if (!isInDialog) this.closeKeybindsModal();
+      });
+    }
+
+    if (this.btnFullscreenCompact) {
+      this.btnFullscreenCompact.addEventListener('click', () => this.toggleZenMode());
+    }
 
     // Theme Events
     if (this.btnThemeToggle) {
@@ -1076,6 +1265,7 @@ class QuizApp {
     }
 
     this.updateProgressBar();
+    this.updateCompactMeta();
   }
 
   updateCardStatusPill(cardId) {
@@ -1217,9 +1407,9 @@ class QuizApp {
     const q = this.activeQuestions[this.currentIndex];
     this.questionStartTime = Date.now();
     this.isAnswered = this.userAnswers[q.id] !== undefined;
-    this.selectedMultiOptions.clear();
 
     if (this.isAnswered && Array.isArray(this.userAnswers[q.id])) {
+      this.selectedMultiOptions.clear();
       this.userAnswers[q.id].forEach(idx => this.selectedMultiOptions.add(idx));
     }
 
@@ -1250,12 +1440,12 @@ class QuizApp {
       this.questionContentArea.scrollTop = 0;
     }
 
-    // Toggle 2-column grid layout for questions with 5 or more options
-    const hasManyOptions = q.options && q.options.length >= 5;
-    this.optionsList.classList.toggle('grid-options', hasManyOptions);
+    // Single-column layout prioritized; use grid only for >= 6 options
+    const useGrid = q.options && q.options.length >= 6;
+    this.optionsList.classList.toggle('grid-options', useGrid);
 
     this.optionsList.innerHTML = '';
-    const optionKeys = ['D', 'F', 'J', 'K', 'L', ';', '7', '8', '9', '0'];
+    const optionBadges = this.getActiveBadgeKeys();
 
     q.options.forEach((optText, index) => {
       const btn = document.createElement('button');
@@ -1268,7 +1458,7 @@ class QuizApp {
 
       const isCorrectOption = q.correctAnswers.includes(index);
 
-      if (this.isAnswered) {
+      if (this.mode === 'drill' && this.isAnswered) {
         btn.classList.add('disabled');
         if (isCorrectOption) {
           btn.classList.add('correct');
@@ -1279,14 +1469,14 @@ class QuizApp {
         if (userSelected) {
           if (q.isMultipleChoice) {
             btn.classList.add('multi-selected');
-          } else if (this.mode === 'exam') {
+          } else {
             btn.classList.add('selected');
           }
         }
       }
 
       btn.innerHTML = `
-        <span class="key-badge">${optionKeys[index] || index + 1}</span>
+        <span class="key-badge">${optionBadges[index] || index + 1}</span>
         <span class="option-text">${optText}</span>
         <span class="option-status-icon">${isCorrectOption ? '✓' : '✗'}</span>
       `;
@@ -1321,8 +1511,8 @@ class QuizApp {
         this.feedbackBox.innerHTML = `<div>✓ <strong>Correct!</strong> Excellent retention.</div> <span style="font-size:0.8rem; opacity:0.8">[Press Space / Enter to advance]</span>`;
       } else {
         this.feedbackBox.classList.add('wrong');
-        const correctLetters = q.correctAnswers.map(idx => optionKeys[idx] || idx + 1).join(', ');
-        const correctTexts = q.correctAnswers.map(idx => `<strong>${optionKeys[idx] || idx + 1}. ${q.options[idx]}</strong>`).join('<br>');
+        const correctLetters = q.correctAnswers.map(idx => optionBadges[idx] || idx + 1).join(', ');
+        const correctTexts = q.correctAnswers.map(idx => `<strong>${optionBadges[idx] || idx + 1}. ${q.options[idx]}</strong>`).join('<br>');
         this.feedbackBox.innerHTML = `<div>✗ <strong>Incorrect.</strong> Correct answer(s): <strong>${correctLetters}</strong><div style="margin-top:0.35rem; font-size:0.85rem;">${correctTexts}</div></div> <span style="font-size:0.8rem; opacity:0.8">[Press Space / Enter to advance]</span>`;
       }
     } else {
@@ -1330,6 +1520,7 @@ class QuizApp {
     }
 
     this.updateProgressBar();
+    this.updateCompactMeta();
   }
 
   checkAnswerCorrectness(q, answer) {
@@ -1342,16 +1533,28 @@ class QuizApp {
   }
 
   handleOptionClick(index) {
+    if (this.isPaused) return;
     const q = this.activeQuestions[this.currentIndex];
-    if (this.isAnswered && this.mode === 'drill') return;
+    if (!q) return;
+
+    if (this.mode === 'drill' && this.isAnswered) return;
 
     if (q.isMultipleChoice) {
-      if (this.isAnswered) return;
+      if (this.mode === 'drill' && this.isAnswered) return;
       if (this.selectedMultiOptions.has(index)) {
         this.selectedMultiOptions.delete(index);
       } else {
         this.selectedMultiOptions.add(index);
       }
+      if (this.mode === 'exam') {
+        this.userAnswers[q.id] = Array.from(this.selectedMultiOptions).sort((a, b) => a - b);
+      }
+      this.renderCurrentQuestion();
+      return;
+    }
+
+    if (this.mode === 'exam') {
+      this.userAnswers[q.id] = index;
       this.renderCurrentQuestion();
       return;
     }
@@ -1401,11 +1604,20 @@ class QuizApp {
     }
   }
 
+  initQuestionSelections() {
+    this.selectedMultiOptions.clear();
+    const q = this.activeQuestions[this.currentIndex];
+    if (q && this.userAnswers[q.id] !== undefined && Array.isArray(this.userAnswers[q.id])) {
+      this.userAnswers[q.id].forEach(idx => this.selectedMultiOptions.add(idx));
+    }
+  }
+
   handleNextOrSubmit() {
     if (this.autoAdvanceTimeout) clearTimeout(this.autoAdvanceTimeout);
 
     if (this.currentIndex < this.activeQuestions.length - 1) {
       this.currentIndex++;
+      this.initQuestionSelections();
       this.renderCurrentQuestion();
     } else {
       this.showQuizSummary();
@@ -1416,6 +1628,7 @@ class QuizApp {
     if (this.autoAdvanceTimeout) clearTimeout(this.autoAdvanceTimeout);
     if (this.currentIndex > 0) {
       this.currentIndex--;
+      this.initQuestionSelections();
       this.renderCurrentQuestion();
     }
   }
@@ -1927,6 +2140,13 @@ class QuizApp {
       return;
     }
 
+    // Hide / Show Top Bars: H
+    if (key === 'H' && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
+      e.preventDefault();
+      this.toggleTopBars();
+      return;
+    }
+
     // Text Zoom Out: [
     if (e.key === '[' && !e.ctrlKey && !e.metaKey) {
       e.preventDefault();
@@ -1957,11 +2177,15 @@ class QuizApp {
       return;
     }
 
-    // Restart: R
+    // Restart: Shift+R or R (prevent conflict with QWERTY 'R' option)
     if (key === 'R' && !e.ctrlKey && !e.metaKey) {
-      e.preventDefault();
-      this.restartSession();
-      return;
+      const q = this.activeQuestions && this.activeQuestions[this.currentIndex];
+      const isROption = !this.quizView.classList.contains('hidden') && q && q.options && q.options.length >= 4;
+      if (!isROption || e.shiftKey) {
+        e.preventDefault();
+        this.restartSession();
+        return;
+      }
     }
 
     // Flashcard Mode Shortcuts
@@ -2018,25 +2242,31 @@ class QuizApp {
         return;
       }
 
-      const keyToOptionIndex = {
-        'D': 0,
-        'F': 1,
-        'J': 2,
-        'K': 3,
-        'L': 4,
-        ';': 5,
-        '7': 6,
-        '8': 7,
-        '9': 8,
-        '0': 9
-      };
+      // Multi-keybind option selection: Numbers (1-0), QWERTY (Q-P), Home Row (D,F,J,K...), and Custom
+      let optIdx = undefined;
 
-      if (keyToOptionIndex[key] !== undefined) {
-        const optIdx = keyToOptionIndex[key];
+      const numberMap = { '1': 0, '2': 1, '3': 2, '4': 3, '5': 4, '6': 5, '7': 6, '8': 7, '9': 8, '0': 9 };
+      const qwertyMap = { 'Q': 0, 'W': 1, 'E': 2, 'R': 3, 'T': 4, 'Y': 5, 'U': 6, 'I': 7, 'O': 8, 'P': 9 };
+      const homerowMap = { 'D': 0, 'F': 1, 'J': 2, 'K': 3, 'L': 4, ';': 5, 'A': 6, 'S': 7, 'G': 8, 'Z': 9 };
+
+      if (numberMap[e.key] !== undefined) {
+        optIdx = numberMap[e.key];
+      } else if (qwertyMap[key] !== undefined) {
+        optIdx = qwertyMap[key];
+      } else if (homerowMap[key] !== undefined) {
+        optIdx = homerowMap[key];
+      } else if (this.customKeys) {
+        const customArr = this.customKeys.toUpperCase().split('');
+        const cIdx = customArr.indexOf(key);
+        if (cIdx !== -1) optIdx = cIdx;
+      }
+
+      if (optIdx !== undefined) {
         const q = this.activeQuestions[this.currentIndex];
         if (q && optIdx < q.options.length) {
           e.preventDefault();
           this.handleOptionClick(optIdx);
+          return;
         }
       }
     }

@@ -6,7 +6,7 @@ class QuizApp {
     this.storageKeyMistakes = 'quiz_drill_mistakes';
     this.storageKeyHistory = 'quiz_drill_history';
     this.storageKeyThemeMode = 'quiz_theme_mode';
-    this.storageKeyThemeAccent = 'quiz_theme_accent';
+    this.storageKeyTheme = 'quiz_theme_id';
 
     // Bank & Question Pool State
     this.storedBankRaw = localStorage.getItem(this.storageKeyBank) || null;
@@ -51,7 +51,7 @@ class QuizApp {
     this.btnThemeToggle = document.getElementById('btn-theme-toggle');
     this.themeIconSun = document.getElementById('theme-icon-sun');
     this.themeIconMoon = document.getElementById('theme-icon-moon');
-    this.accentDots = document.querySelectorAll('.accent-dot');
+    this.themePills = document.querySelectorAll('.theme-pill');
     this.btnFullscreen = document.getElementById('btn-fullscreen');
     this.btnManageBank = document.getElementById('btn-manage-bank');
     this.restartBtn = document.getElementById('btn-restart');
@@ -71,7 +71,7 @@ class QuizApp {
     this.emptyBtnPaste = document.getElementById('empty-btn-paste');
     this.mainAppContent = document.getElementById('main-app-content');
 
-    // Top Toolbar & Controls
+    this.topToolbar = document.getElementById('top-toolbar');
     this.btnQuizDropdown = document.getElementById('btn-quiz-dropdown');
     this.quizDropdownLabel = document.getElementById('quiz-dropdown-label');
     this.quizDropdownPopover = document.getElementById('quiz-dropdown-popover');
@@ -83,11 +83,14 @@ class QuizApp {
     this.autoAdvanceToggle = document.getElementById('autoadvance-toggle');
 
     // HUD Stats
+    this.statsHud = document.getElementById('stats-hud');
     this.hudStreak = document.getElementById('hud-streak');
     this.hudAccuracy = document.getElementById('hud-accuracy');
     this.hudTimer = document.getElementById('hud-timer');
     this.hudAvgSpeed = document.getElementById('hud-avg-speed');
+    this.progressContainer = document.getElementById('progress-container');
     this.progressBar = document.getElementById('progress-bar');
+    this.keyboardBar = document.getElementById('keyboard-bar');
 
     // Question Card
     this.quizView = document.getElementById('quiz-view');
@@ -139,39 +142,69 @@ class QuizApp {
   }
 
   initTheme() {
-    const savedTheme = localStorage.getItem(this.storageKeyThemeMode) || 'dark';
-    if (savedTheme === 'light') {
-      document.body.classList.add('light');
-      if (this.themeIconSun) this.themeIconSun.classList.remove('hidden');
-      if (this.themeIconMoon) this.themeIconMoon.classList.add('hidden');
-    } else {
+    const validThemes = ['blue', 'zinc', 'violet', 'green', 'rose', 'orange'];
+    const savedMode = localStorage.getItem(this.storageKeyThemeMode) || 'light';
+    
+    if (savedMode === 'dark') {
+      document.body.classList.add('dark');
       document.body.classList.remove('light');
       if (this.themeIconSun) this.themeIconSun.classList.add('hidden');
       if (this.themeIconMoon) this.themeIconMoon.classList.remove('hidden');
+      if (this.btnThemeToggle) this.btnThemeToggle.title = 'Switch to Light Mode';
+    } else {
+      document.body.classList.remove('dark');
+      document.body.classList.add('light');
+      if (this.themeIconSun) this.themeIconSun.classList.remove('hidden');
+      if (this.themeIconMoon) this.themeIconMoon.classList.add('hidden');
+      if (this.btnThemeToggle) this.btnThemeToggle.title = 'Switch to Dark Mode';
     }
 
-    const savedAccent = localStorage.getItem(this.storageKeyThemeAccent) || 'zinc';
-    document.body.dataset.accent = savedAccent;
-    this.accentDots.forEach(dot => {
-      dot.classList.toggle('active', dot.dataset.accent === savedAccent);
-    });
+    let savedTheme = localStorage.getItem(this.storageKeyTheme) || 'blue';
+    if (!validThemes.includes(savedTheme)) {
+      savedTheme = 'blue';
+    }
+    this.applyTheme(savedTheme, false);
+  }
+
+  applyTheme(themeId, persist = true) {
+    const validThemes = ['blue', 'zinc', 'violet', 'green', 'rose', 'orange'];
+    if (!validThemes.includes(themeId)) {
+      themeId = 'blue';
+    }
+    document.body.dataset.theme = themeId;
+    if (persist) {
+      localStorage.setItem(this.storageKeyTheme, themeId);
+    }
+    if (this.themePills) {
+      this.themePills.forEach(pill => {
+        pill.classList.toggle('active', pill.dataset.theme === themeId);
+      });
+    }
+
+    // If summary chart is rendered, re-render it so SVG colors and gradients update
+    if (this.summaryView && !this.summaryView.classList.contains('hidden')) {
+      const history = JSON.parse(localStorage.getItem(this.storageKeyHistory) || '[]');
+      this.renderImprovementChart(history);
+    }
   }
 
   toggleThemeMode() {
-    const isLight = document.body.classList.toggle('light');
-    const newTheme = isLight ? 'light' : 'dark';
-    localStorage.setItem(this.storageKeyThemeMode, newTheme);
+    const isDark = document.body.classList.toggle('dark');
+    document.body.classList.toggle('light', !isDark);
+    const newMode = isDark ? 'dark' : 'light';
+    localStorage.setItem(this.storageKeyThemeMode, newMode);
 
-    if (this.themeIconSun) this.themeIconSun.classList.toggle('hidden', !isLight);
-    if (this.themeIconMoon) this.themeIconMoon.classList.toggle('hidden', isLight);
-  }
+    if (this.themeIconSun) this.themeIconSun.classList.toggle('hidden', isDark);
+    if (this.themeIconMoon) this.themeIconMoon.classList.toggle('hidden', !isDark);
+    if (this.btnThemeToggle) {
+      this.btnThemeToggle.title = isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode';
+    }
 
-  setAccent(accent) {
-    document.body.dataset.accent = accent;
-    localStorage.setItem(this.storageKeyThemeAccent, accent);
-    this.accentDots.forEach(dot => {
-      dot.classList.toggle('active', dot.dataset.accent === accent);
-    });
+    // If summary chart is rendered, re-render it
+    if (this.summaryView && !this.summaryView.classList.contains('hidden')) {
+      const history = JSON.parse(localStorage.getItem(this.storageKeyHistory) || '[]');
+      this.renderImprovementChart(history);
+    }
   }
 
   bindEvents() {
@@ -179,9 +212,11 @@ class QuizApp {
     if (this.btnThemeToggle) {
       this.btnThemeToggle.addEventListener('click', () => this.toggleThemeMode());
     }
-    this.accentDots.forEach(dot => {
-      dot.addEventListener('click', () => this.setAccent(dot.dataset.accent));
-    });
+    if (this.themePills) {
+      this.themePills.forEach(pill => {
+        pill.addEventListener('click', () => this.applyTheme(pill.dataset.theme));
+      });
+    }
 
     // Header & Modal Actions
     this.btnManageBank.addEventListener('click', () => this.openBankModal(false));
@@ -561,6 +596,10 @@ class QuizApp {
       this.updateHUDTimer();
     }, 1000);
 
+    if (this.topToolbar) this.topToolbar.classList.remove('hidden');
+    if (this.statsHud) this.statsHud.classList.remove('hidden');
+    if (this.progressContainer) this.progressContainer.classList.remove('hidden');
+    if (this.keyboardBar) this.keyboardBar.classList.remove('hidden');
     this.quizView.classList.remove('hidden');
     this.summaryView.classList.add('hidden');
 
@@ -944,8 +983,13 @@ class QuizApp {
     if (this.timerInterval) clearInterval(this.timerInterval);
     if (this.autoAdvanceTimeout) clearTimeout(this.autoAdvanceTimeout);
 
+    if (this.topToolbar) this.topToolbar.classList.add('hidden');
+    if (this.statsHud) this.statsHud.classList.add('hidden');
+    if (this.progressContainer) this.progressContainer.classList.add('hidden');
+    if (this.keyboardBar) this.keyboardBar.classList.add('hidden');
     this.quizView.classList.add('hidden');
     this.summaryView.classList.remove('hidden');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 
     const total = this.activeQuestions.length;
     let correctCount = 0;
@@ -1294,5 +1338,5 @@ class QuizApp {
 
 // Instantiate on DOM load
 window.addEventListener('DOMContentLoaded', () => {
-  new QuizApp();
+  window.quizApp = new QuizApp();
 });

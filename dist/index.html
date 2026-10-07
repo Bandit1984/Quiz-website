@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Quiz Drill Memorizer - Speed Drill & Exam Simulation</title>
   <meta name="description" content="High-speed quiz memorization and practice tool featuring keyboard shortcuts, multi-quiz filtering, instant feedback, and analytics.">
-  <script type="module" crossorigin src="/assets/index-EPr5BNPQ.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/index-DWHmBpys.css">
+  <script type="module" crossorigin src="/assets/index-C-imq_gT.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-BpfwdUZn.css">
 </head>
 <body>
   <div class="app-container">
@@ -20,20 +20,40 @@
       <div class="header-actions">
         <!-- Theme Mode Toggle (Light / Dark) -->
         <button id="btn-theme-toggle" class="btn-outline btn-icon-only" title="Toggle Light / Dark Mode">
-          <svg id="theme-icon-sun" class="btn-icon hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg id="theme-icon-sun" class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>
           </svg>
-          <svg id="theme-icon-moon" class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg id="theme-icon-moon" class="btn-icon hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
           </svg>
         </button>
 
-        <!-- Theme Accent Picker -->
-        <div class="theme-accent-picker" title="Choose Accent Color">
-          <button class="accent-dot active" data-accent="zinc" style="background: #a1a1aa;"></button>
-          <button class="accent-dot" data-accent="indigo" style="background: #6366f1;"></button>
-          <button class="accent-dot" data-accent="emerald" style="background: #10b981;"></button>
-          <button class="accent-dot" data-accent="violet" style="background: #8b5cf6;"></button>
+        <!-- shadcn/ui Official Color Themes -->
+        <div class="theme-selector" role="group" aria-label="Website Theme">
+          <button class="theme-pill active" data-theme="blue" title="Blue (Default)">
+            <span class="theme-dot" style="background: #2563eb;"></span>
+            <span class="theme-name">Blue</span>
+          </button>
+          <button class="theme-pill" data-theme="zinc" title="Zinc (Monochrome)">
+            <span class="theme-dot" style="background: #71717a;"></span>
+            <span class="theme-name">Zinc</span>
+          </button>
+          <button class="theme-pill" data-theme="violet" title="Violet">
+            <span class="theme-dot" style="background: #7c3aed;"></span>
+            <span class="theme-name">Violet</span>
+          </button>
+          <button class="theme-pill" data-theme="green" title="Green">
+            <span class="theme-dot" style="background: #059669;"></span>
+            <span class="theme-name">Green</span>
+          </button>
+          <button class="theme-pill" data-theme="rose" title="Rose">
+            <span class="theme-dot" style="background: #e11d48;"></span>
+            <span class="theme-name">Rose</span>
+          </button>
+          <button class="theme-pill" data-theme="orange" title="Orange">
+            <span class="theme-dot" style="background: #ea580c;"></span>
+            <span class="theme-name">Orange</span>
+          </button>
         </div>
 
         <!-- Zen Mode Toggle -->

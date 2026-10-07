@@ -116,16 +116,28 @@ class QuizApp {
 
   bindEvents() {
     // Header & Modal Actions
-    this.btnManageBank.addEventListener('click', () => this.openBankModal());
+    this.btnManageBank.addEventListener('click', () => this.openBankModal(false));
     this.modalCloseBtn.addEventListener('click', () => this.closeBankModal());
     this.btnCancelModal.addEventListener('click', () => this.closeBankModal());
     this.btnClearBank.addEventListener('click', () => this.clearBank());
     this.btnSaveBank.addEventListener('click', () => this.saveBankFromModal());
 
-    // File Input & Drag and Drop (Empty State)
-    this.emptyFileInput.addEventListener('change', (e) => this.handleFileSelect(e));
-    this.modalFileInput.addEventListener('change', (e) => this.handleFileSelect(e));
-    this.emptyBtnPaste.addEventListener('click', () => this.openBankModal());
+    // Modal Backdrop Click
+    this.bankModal.addEventListener('click', (e) => {
+      const rect = this.bankModal.getBoundingClientRect();
+      const isInDialog = (
+        rect.top <= e.clientY && e.clientY <= rect.top + rect.height &&
+        rect.left <= e.clientX && e.clientX <= rect.left + rect.width
+      );
+      if (!isInDialog) {
+        this.closeBankModal();
+      }
+    });
+
+    // File Input & Drag and Drop
+    this.emptyFileInput.addEventListener('change', (e) => this.handleFileSelect(e, true));
+    this.modalFileInput.addEventListener('change', (e) => this.handleFileSelect(e, false));
+    this.emptyBtnPaste.addEventListener('click', () => this.openBankModal(false));
 
     this.setupDragAndDrop();
 
@@ -133,7 +145,7 @@ class QuizApp {
     this.bankTextarea.addEventListener('input', () => this.updateModalPreview());
 
     // Filter Chips Events
-    this.btnFilterAll.addEventListener('click', () => this.selectAllQuizzes());
+    this.btnFilterAll.addEventListener('click', () => this.selectAllQuizzes(true));
 
     // Mode Switching
     this.modeDrillBtn.addEventListener('click', () => this.switchMode('drill'));
@@ -171,6 +183,10 @@ class QuizApp {
   }
 
   setupDragAndDrop() {
+    // Prevent default drag and drop across the entire window so browser doesn't open the file
+    window.addEventListener('dragover', (e) => e.preventDefault());
+    window.addEventListener('drop', (e) => e.preventDefault());
+
     const events = ['dragenter', 'dragover', 'dragleave', 'drop'];
     events.forEach(eventName => {
       this.emptyDropZone.addEventListener(eventName, (e) => {
@@ -185,36 +201,64 @@ class QuizApp {
       });
     });
 
-    ['dragleave', 'drop'].forEach(eventName => {
+    ['dragleave'].forEach(eventName => {
       this.emptyDropZone.addEventListener(eventName, () => {
         this.emptyDropZone.classList.remove('drag-active');
       });
     });
 
     this.emptyDropZone.addEventListener('drop', (e) => {
+      this.emptyDropZone.classList.remove('drag-active');
       const dt = e.dataTransfer;
-      const files = dt.files;
+      const files = dt && dt.files;
       if (files && files.length > 0) {
-        this.readFile(files[0]);
+        this.readFile(files[0], true);
       }
     });
   }
 
-  handleFileSelect(e) {
+  handleFileSelect(e, autoSave = true) {
     const file = e.target.files && e.target.files[0];
     if (file) {
-      this.readFile(file);
+      this.readFile(file, autoSave);
+      e.target.value = ''; // Reset so the same file can be selected again
     }
   }
 
-  readFile(file) {
+  readFile(file, autoSave = true) {
+    if (!file) return;
+
     const reader = new FileReader();
     reader.onload = (event) => {
       const content = event.target.result;
-      this.bankTextarea.value = content;
-      this.openBankModal();
-      this.updateModalPreview();
+      const parsed = parseQuestionBank(content);
+
+      if (!parsed || parsed.quizzes.length === 0) {
+        alert('Could not find any valid quizzes in the uploaded file.\n\nPlease ensure sections start with "## Quiz Title", questions with "### Question", and options with "A.", "B.", etc.');
+        this.bankTextarea.value = content;
+        this.openBankModal(true);
+        this.updateModalPreview();
+        return;
+      }
+
+      if (autoSave) {
+        // Automatically save and start quiz immediately
+        localStorage.setItem(this.storageKeyBank, content);
+        this.closeBankModal();
+        this.selectedQuizIds.clear();
+        this.loadBank();
+      } else {
+        // Fill modal textarea and show preview
+        this.bankTextarea.value = content;
+        this.updateModalPreview();
+      }
     };
+
+    reader.onerror = (err) => {
+      console.error('File read error:', err);
+      alert('Error reading the selected file. Please try again.');
+    };
+
     reader.readAsText(file);
   }
 
@@ -241,15 +285,15 @@ class QuizApp {
     this.emptyStateView.classList.add('hidden');
     this.mainAppContent.classList.remove('hidden');
 
-    // Set dynamic brand title
+    // Dynamic brand title
     this.brandTitle.textContent = this.bankData.title || 'Quiz Drill Memorizer';
 
-    // Populate filter chips
+    // Render filter chips
     this.renderFilterChips();
 
-    // Select all quizzes by default if no selection yet
+    // Select all quizzes by default on initial load
     if (this.selectedQuizIds.size === 0) {
-      this.selectAllQuizzes(false);
+      this.selectAllQuizzes(true);
     } else {
       this.rebuildQuestionsPool();
       this.startSession();
@@ -306,11 +350,11 @@ class QuizApp {
     const isAllSelected = this.selectedQuizIds.size === this.bankData.quizzes.length;
 
     if (isAllSelected) {
-      // If all were selected, clicking one isolates that single quiz
+      // If all were active, isolate just this clicked quiz
       this.selectedQuizIds = new Set([quizId]);
     } else if (this.selectedQuizIds.has(quizId)) {
       this.selectedQuizIds.delete(quizId);
-      // If nothing remains, revert to all
+      // If nothing remains selected, revert to all
       if (this.selectedQuizIds.size === 0) {
         this.selectedQuizIds = new Set(this.bankData.quizzes.map(q => q.id));
       }
@@ -525,7 +569,6 @@ class QuizApp {
     if (this.isAnswered && this.mode === 'drill') return;
 
     if (q.isMultipleChoice) {
-      // Toggle selection for multiple choice
       if (this.isAnswered) return;
 
       if (this.selectedMultiOptions.has(index)) {
@@ -615,6 +658,12 @@ class QuizApp {
   }
 
   handleNextOrSubmit() {
+    // In Exam Mode, if multi-choice question has selections but wasn't explicitly submitted, record them now
+    const q = this.activeQuestions[this.currentIndex];
+    if (this.mode === 'exam' && q && q.isMultipleChoice && this.userAnswers[q.id] === undefined && this.selectedMultiOptions.size > 0) {
+      this.userAnswers[q.id] = Array.from(this.selectedMultiOptions).sort((a, b) => a - b);
+    }
+
     if (this.currentIndex < this.activeQuestions.length - 1) {
       this.nextQuestion();
     } else {
@@ -639,8 +688,12 @@ class QuizApp {
   }
 
   handleKeyDown(e) {
-    // Disable keyboard shortcuts when typing inside form fields or modal is open
-    if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName) || (this.bankModal && this.bankModal.open)) {
+    // Disable shortcuts if in form input, textarea, modal open, or empty state visible
+    if (
+      ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName) ||
+      (this.bankModal && this.bankModal.open) ||
+      this.mainAppContent.classList.contains('hidden')
+    ) {
       return;
     }
 
@@ -823,25 +876,30 @@ class QuizApp {
   }
 
   // Bank Management Modal Operations
-  openBankModal() {
-    if (this.storedBankRaw) {
-      this.bankTextarea.value = this.storedBankRaw;
-      this.bankStatusText.textContent = `Currently loaded: "${this.bankData.title}" (${this.bankData.quizzes.length} Quizzes, ${this.bankData.totalQuestions} Questions)`;
-      this.btnClearBank.classList.remove('hidden');
-      this.updateModalPreview();
-    } else {
-      this.bankTextarea.value = '';
-      this.bankStatusText.textContent = 'No question bank currently loaded.';
-      this.btnClearBank.classList.add('hidden');
-      this.parsePreviewBox.classList.add('hidden');
-      this.btnSaveBank.disabled = true;
+  openBankModal(keepContent = false) {
+    if (!keepContent) {
+      if (this.storedBankRaw) {
+        this.bankTextarea.value = this.storedBankRaw;
+        this.bankStatusText.textContent = `Currently loaded: "${this.bankData.title}" (${this.bankData.quizzes.length} Quizzes, ${this.bankData.totalQuestions} Questions)`;
+        this.btnClearBank.classList.remove('hidden');
+      } else {
+        this.bankTextarea.value = '';
+        this.bankStatusText.textContent = 'No question bank currently loaded.';
+        this.btnClearBank.classList.add('hidden');
+      }
     }
 
-    this.bankModal.showModal();
+    this.updateModalPreview();
+
+    if (!this.bankModal.open) {
+      this.bankModal.showModal();
+    }
   }
 
   closeBankModal() {
-    this.bankModal.close();
+    if (this.bankModal.open) {
+      this.bankModal.close();
+    }
   }
 
   updateModalPreview() {
@@ -856,7 +914,7 @@ class QuizApp {
     if (parsed.quizzes.length === 0) {
       this.parsePreviewBox.classList.remove('hidden');
       this.previewSummaryText.textContent = 'No valid quizzes or questions detected yet.';
-      this.previewQuizzesList.innerHTML = '<div style="color: var(--text-muted); font-size: 0.8rem;">Ensure questions start with "### Question" and options with "A.", "B.", etc.</div>';
+      this.previewQuizzesList.innerHTML = '<div style="color: var(--text-muted); font-size: 0.8rem;">Ensure sections start with "## Quiz Title", questions with "### Question", and options with "A.", "B.", etc.</div>';
       this.btnSaveBank.disabled = true;
       return;
     }

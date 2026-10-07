@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Quiz Drill Memorizer - Speed Drill & Exam Simulation</title>
-  <meta name="description" content="High-speed quiz memorization and practice tool featuring keyboard shortcuts, multi-quiz filtering, instant feedback, and analytics.">
+  <title>Quiz Drill Memorizer - Speed Drill & Flashcard Practice</title>
+  <meta name="description" content="High-speed quiz memorization, exam simulation, and interactive flashcard practice tool.">
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
@@ -13,7 +13,7 @@
     <!-- Header -->
     <header class="app-header">
       <div class="brand">
-        <span class="brand-badge">SPEED DRILL</span>
+        <span class="brand-badge">STUDY DRILL</span>
         <h1 id="brand-title" class="brand-title">Quiz Drill Memorizer</h1>
       </div>
       <div class="header-actions">
@@ -64,17 +64,17 @@
         </button>
 
         <!-- Bank Manager -->
-        <button id="btn-manage-bank" class="btn-secondary" title="Manage or import Question Bank">
+        <button id="btn-manage-bank" class="btn-secondary" title="Manage Study Banks">
           <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/>
             <path d="M6 6h10"/>
             <path d="M6 10h10"/>
           </svg>
-          <span class="btn-text">Bank</span>
+          <span class="btn-text">Banks</span>
         </button>
 
         <!-- Restart Session -->
-        <button id="btn-restart" class="btn-secondary" title="Restart current quiz session (Press R)">
+        <button id="btn-restart" class="btn-secondary" title="Restart current study session (Press R)">
           <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
             <path d="M21 3v5h-5"/>
@@ -86,26 +86,59 @@
       </div>
     </header>
 
-    <!-- EMPTY STATE VIEW (Shown when no question bank is loaded) -->
+    <!-- EMPTY STATE VIEW (Shown when no study banks are loaded) -->
     <section id="empty-state-view" class="empty-state-card">
-      <div class="empty-icon">📂</div>
-      <h2>No Question Bank Loaded</h2>
-      <p class="empty-subtitle">
-        Upload your Question Bank file or paste reference material to get started with instant drills and exams.
-      </p>
+      <div class="empty-header">
+        <div class="empty-icon">📂</div>
+        <h2>Load Your Study Material</h2>
+        <p class="empty-subtitle">
+          Upload your <strong>Question Bank</strong> for fast drills and exam simulation, or your <strong>Flashcard Bank</strong> for quick conceptual practice — or load both!
+        </p>
+      </div>
 
-      <div class="drop-zone" id="empty-drop-zone">
-        <span class="drop-zone-icon">📥</span>
-        <span class="drop-zone-text">Drag & drop your <strong>.txt</strong> or <strong>.md</strong> file here</span>
-        <span class="drop-zone-or">— or —</span>
-        <div class="empty-actions">
-          <label for="empty-file-input" class="btn-primary file-label-btn">
-            📁 Browse File
-          </label>
-          <input type="file" id="empty-file-input" accept=".txt,.md,.markdown,.text,text/plain,text/markdown,*/*" class="hidden-file-input">
-          <button id="empty-btn-paste" class="btn-secondary">
-            📋 Paste Text Material
-          </button>
+      <div class="dual-drop-container">
+        <!-- Question Bank (MCQ) Slot -->
+        <div class="drop-zone-card" id="drop-zone-quiz">
+          <div class="drop-zone-header">
+            <span class="slot-badge">MCQ DRILL & EXAMS</span>
+            <h3>Question Bank</h3>
+            <p class="slot-desc">For multiple-choice questions with answers marked <code>[CORRECT]</code>.</p>
+          </div>
+          <div class="drop-zone-inner">
+            <span class="drop-zone-icon">📝</span>
+            <span class="drop-zone-text">Drop <strong>Question Bank</strong> (.txt, .md) here</span>
+            <div class="empty-actions">
+              <label for="quiz-file-input" class="btn-primary file-label-btn">
+                📁 Browse Quiz File
+              </label>
+              <input type="file" id="quiz-file-input" accept=".txt,.md,.markdown,.text,text/plain,text/markdown,*/*" class="hidden-file-input">
+              <button id="btn-paste-quiz-empty" class="btn-secondary">
+                📋 Paste Text
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Flashcard Bank Slot -->
+        <div class="drop-zone-card" id="drop-zone-flashcard">
+          <div class="drop-zone-header">
+            <span class="slot-badge accent-badge">FLASHCARD PRACTICE</span>
+            <h3>Flashcard Bank</h3>
+            <p class="slot-desc">For Q&A flashcards with answers marked <code>**Answer:**</code>.</p>
+          </div>
+          <div class="drop-zone-inner">
+            <span class="drop-zone-icon">🎴</span>
+            <span class="drop-zone-text">Drop <strong>Flashcard file</strong> (.txt, .md) here</span>
+            <div class="empty-actions">
+              <label for="flashcard-file-input" class="btn-primary file-label-btn">
+                📁 Browse Flashcards
+              </label>
+              <input type="file" id="flashcard-file-input" accept=".txt,.md,.markdown,.text,text/plain,text/markdown,*/*" class="hidden-file-input">
+              <button id="btn-paste-flashcard-empty" class="btn-secondary">
+                📋 Paste Text
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -116,8 +149,8 @@
       <!-- Minimalist Fullscreen Zen Bar (Only shown in fullscreen mode) -->
       <div id="fullscreen-zen-bar" class="fullscreen-zen-bar hidden">
         <div class="zen-meta-left">
-          <span id="zen-quiz-title" class="badge-outline">Quiz Title</span>
-          <span id="zen-counter" class="zen-counter">1 / 201</span>
+          <span id="zen-quiz-title" class="badge-outline">Title</span>
+          <span id="zen-counter" class="zen-counter">1 / 100</span>
         </div>
         <div class="zen-meta-right">
           <span id="zen-streak" class="zen-pill">0🔥</span>
@@ -131,16 +164,16 @@
         </div>
       </div>
 
-      <!-- Top Toolbar (Uncluttered Dropdown & Switches directly above HUD) -->
+      <!-- Top Toolbar (Dropdown & Mode Switches) -->
       <div id="top-toolbar" class="top-toolbar">
-        <!-- Quiz Filter Dropdown Popover -->
+        <!-- Filter Dropdown Popover (Quizzes or Flashcard Decks) -->
         <div class="dropdown-wrapper">
-          <button id="btn-quiz-dropdown" class="btn-select-trigger" aria-haspopup="true" aria-expanded="false" title="Filter by Quiz Title">
+          <button id="btn-quiz-dropdown" class="btn-select-trigger" aria-haspopup="true" aria-expanded="false" title="Filter by Section">
             <svg class="dropdown-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/>
               <path d="M6 6h10"/>
             </svg>
-            <span id="quiz-dropdown-label" class="dropdown-label">All Quizzes (0 Qs)</span>
+            <span id="quiz-dropdown-label" class="dropdown-label">All Items</span>
             <svg class="chevron-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="m6 9 6 6 6-6"/>
             </svg>
@@ -149,7 +182,7 @@
           <!-- Dropdown Popover Content -->
           <div id="quiz-dropdown-popover" class="dropdown-popover hidden">
             <div class="popover-header">
-              <span class="popover-title">Select Quizzes</span>
+              <span id="popover-header-title" class="popover-title">Select Items</span>
               <button id="btn-select-all-quizzes" class="btn-link">Select All</button>
             </div>
             <div id="quiz-dropdown-list" class="popover-items-list">
@@ -158,13 +191,16 @@
           </div>
         </div>
 
-        <!-- Segmented Mode Control -->
+        <!-- Segmented Mode Control (Fast Drill | Exam | Flashcards) -->
         <div class="segmented-control">
           <button id="mode-drill" class="segmented-btn active" title="Instant right/wrong feedback per question">
             ⚡ Fast Drill
           </button>
           <button id="mode-exam" class="segmented-btn" title="Simulate exam uninterrupted">
             📝 Exam
+          </button>
+          <button id="mode-flashcards" class="segmented-btn" title="Practice with interactive flashcards">
+            🎴 Flashcards
           </button>
         </div>
 
@@ -179,8 +215,8 @@
             <span class="toggle-label">Shuffle</span>
           </div>
 
-          <!-- Auto Next Switch Toggle (0.5s default) -->
-          <div class="toggle-control" title="Toggle Auto Next after answering (0.5s default)">
+          <!-- Auto Next Switch Toggle (0.5s default for Drill mode) -->
+          <div id="autoadvance-control" class="toggle-control" title="Toggle Auto Next after answering (0.5s default)">
             <label class="switch">
               <input type="checkbox" id="autoadvance-toggle" checked>
               <span class="slider"></span>
@@ -192,21 +228,21 @@
 
       <!-- HUD Stats Bar -->
       <div id="stats-hud" class="stats-hud">
-        <div class="stat-card">
-          <span class="stat-label">Current Streak</span>
-          <span id="hud-streak" class="stat-value streak">0🔥</span>
+        <div class="stat-card" id="hud-card-1">
+          <span id="hud-label-1" class="stat-label">Current Streak</span>
+          <span id="hud-val-1" class="stat-value streak">0🔥</span>
         </div>
-        <div class="stat-card">
-          <span class="stat-label">Accuracy</span>
-          <span id="hud-accuracy" class="stat-value accuracy">100%</span>
+        <div class="stat-card" id="hud-card-2">
+          <span id="hud-label-2" class="stat-label">Accuracy</span>
+          <span id="hud-val-2" class="stat-value accuracy">100%</span>
         </div>
-        <div class="stat-card">
-          <span class="stat-label">Elapsed Time</span>
-          <span id="hud-timer" class="stat-value">00:00</span>
+        <div class="stat-card" id="hud-card-3">
+          <span id="hud-label-3" class="stat-label">Elapsed Time</span>
+          <span id="hud-val-3" class="stat-value">00:00</span>
         </div>
-        <div class="stat-card">
-          <span class="stat-label">Avg Speed / Q</span>
-          <span id="hud-avg-speed" class="stat-value">0.0s</span>
+        <div class="stat-card" id="hud-card-4">
+          <span id="hud-label-4" class="stat-label">Avg Speed / Q</span>
+          <span id="hud-val-4" class="stat-value">0.0s</span>
         </div>
       </div>
 
@@ -215,7 +251,7 @@
         <div id="progress-bar" class="progress-fill"></div>
       </div>
 
-      <!-- MAIN QUIZ CARD (Fixed height container to keep Next button stable) -->
+      <!-- 1. MAIN QUIZ CARD (Fast Drill & Exam Modes) -->
       <main id="quiz-view" class="quiz-card">
         <div class="question-meta">
           <div class="meta-left">
@@ -224,7 +260,6 @@
           <span id="q-counter" class="q-counter">Progress: 1 / 0</span>
         </div>
 
-        <!-- Scrollable content area so buttons remain fixed at bottom -->
         <div class="question-content-area">
           <div id="multi-select-badge" class="multi-select-indicator hidden">
             ℹ️ Multiple Answers — Select all that apply
@@ -234,18 +269,15 @@
             Loading question...
           </div>
 
-          <!-- Options -->
           <div id="options-list" class="options-list">
             <!-- Rendered dynamically -->
           </div>
 
-          <!-- Instant Feedback Box (Fast Drill Mode) -->
           <div id="feedback-box" class="feedback-box hidden">
-            <!-- Dynamic message -->
+            <!-- Dynamic feedback message -->
           </div>
         </div>
 
-        <!-- Fixed Action Navigation (No emojis, identical design) -->
         <div class="action-controls">
           <button id="btn-prev" class="btn-nav">
             <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -267,37 +299,134 @@
         </div>
       </main>
 
+      <!-- 2. FLASHCARD PRACTICE VIEW -->
+      <main id="flashcard-view" class="quiz-card flashcard-container hidden">
+        <div class="question-meta">
+          <div class="meta-left">
+            <span id="fc-deck-title" class="badge-outline">Deck Title</span>
+            <span id="fc-status-pill" class="badge-subtle">Unseen</span>
+          </div>
+          <span id="fc-counter" class="q-counter">Card 1 / 100</span>
+        </div>
+
+        <!-- 3D Flashcard Flip Scene -->
+        <div class="flashcard-scene" id="flashcard-scene">
+          <div class="flashcard-card" id="flashcard-card" tabindex="0" role="button" aria-label="Interactive Flashcard. Press Space to flip.">
+            
+            <!-- Front Face (Question) -->
+            <div class="flashcard-face flashcard-front">
+              <div class="fc-face-header">
+                <span class="fc-tag question-tag">QUESTION</span>
+                <span class="fc-flip-pill">Click or Space to flip ↺</span>
+              </div>
+              <div class="fc-face-body">
+                <div id="fc-question-text" class="fc-content-text">
+                  Loading card...
+                </div>
+              </div>
+              <div class="fc-face-footer">
+                <span class="fc-hint-text">💡 Tap anywhere on card or press <kbd>Space</kbd> to reveal answer</span>
+              </div>
+            </div>
+
+            <!-- Back Face (Answer) -->
+            <div class="flashcard-face flashcard-back">
+              <div class="fc-face-header">
+                <span class="fc-tag answer-tag">ANSWER</span>
+                <span class="fc-flip-pill">Click or Space to flip back ↻</span>
+              </div>
+              <div class="fc-face-body">
+                <div id="fc-answer-text" class="fc-content-text">
+                  Loading answer...
+                </div>
+              </div>
+              <div class="fc-face-footer">
+                <span class="fc-hint-text">💡 Self-assess below (<kbd>1</kbd> Review, <kbd>2</kbd> Mastered) or press <kbd>Space</kbd></span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Fixed Flashcard Action Controls (Matching quiz layout) -->
+        <div class="action-controls fc-action-controls">
+          <button id="fc-btn-prev" class="btn-nav" title="Previous card (Left Arrow / D)">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m15 18-6-6 6-6"/>
+            </svg>
+            <span>Previous</span>
+          </button>
+
+          <div class="fc-center-actions">
+            <button id="fc-btn-flip" class="btn-secondary" title="Flip Card (Spacebar)">
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                <path d="M3 3v5h5"/>
+                <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
+                <path d="M16 16h5v5"/>
+              </svg>
+              <span>Flip Card</span>
+            </button>
+            <div class="fc-rating-buttons">
+              <button id="fc-btn-review" class="btn-rating-warning" title="Need Review (Key 1 or J)">
+                ⚠️ Need Review
+              </button>
+              <button id="fc-btn-mastered" class="btn-rating-success" title="Mastered (Key 2 or L)">
+                ✅ Mastered
+              </button>
+            </div>
+          </div>
+
+          <button id="fc-btn-next" class="btn-nav" title="Next card (Right Arrow / K)">
+            <span>Next</span>
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m9 18 6-6-6-6"/>
+            </svg>
+          </button>
+        </div>
+      </main>
+
       <!-- KEYBOARD LEGEND -->
       <footer id="keyboard-bar" class="keyboard-bar">
-        <div class="kbd-item"><kbd>D</kbd> <kbd>F</kbd> <kbd>J</kbd> <kbd>K</kbd> Select Option</div>
-        <div class="kbd-item"><kbd>Space</kbd> / <kbd>Enter</kbd> Next / Submit</div>
-        <div class="kbd-item"><kbd>R</kbd> Restart</div>
-        <div class="kbd-item"><kbd>Shift</kbd>+<kbd>F</kbd> Zen Mode</div>
+        <div id="kbd-quiz-legend" class="kbd-group">
+          <div class="kbd-item"><kbd>D</kbd> <kbd>F</kbd> <kbd>J</kbd> <kbd>K</kbd> Select Option</div>
+          <div class="kbd-item"><kbd>Space</kbd> / <kbd>Enter</kbd> Next / Submit</div>
+          <div class="kbd-item"><kbd>R</kbd> Restart</div>
+          <div class="kbd-item"><kbd>Shift</kbd>+<kbd>F</kbd> Zen Mode</div>
+        </div>
+        <div id="kbd-fc-legend" class="kbd-group hidden">
+          <div class="kbd-item"><kbd>Space</kbd> Flip Card</div>
+          <div class="kbd-item"><kbd>←</kbd> / <kbd>→</kbd> Prev / Next</div>
+          <div class="kbd-item"><kbd>1</kbd> Need Review</div>
+          <div class="kbd-item"><kbd>2</kbd> Mastered</div>
+          <div class="kbd-item"><kbd>R</kbd> Restart</div>
+          <div class="kbd-item"><kbd>Shift</kbd>+<kbd>F</kbd> Zen Mode</div>
+        </div>
       </footer>
 
-      <!-- SUMMARY / RESULTS VIEW (HIDDEN INITIALLY) -->
+      <!-- SUMMARY / RESULTS VIEW (For Quiz Drills & Flashcard Sessions) -->
       <section id="summary-view" class="summary-container hidden">
         <div class="summary-header">
-          <h2>Drill Session Complete!</h2>
+          <h2 id="summary-main-title">Session Complete!</h2>
           <div id="summary-score" class="score-badge">0 / 0</div>
           <p id="summary-subtitle" style="color: var(--muted-foreground);">Here is your performance breakdown.</p>
         </div>
 
         <div class="summary-stats-grid">
           <div class="stat-card">
-            <span class="stat-label">Accuracy Rate</span>
+            <span id="sum-stat-lbl-1" class="stat-label">Accuracy Rate</span>
             <span id="summary-accuracy" class="stat-value accuracy">100%</span>
           </div>
           <div class="stat-card">
-            <span class="stat-label">Total Time</span>
+            <span id="sum-stat-lbl-2" class="stat-label">Total Time</span>
             <span id="summary-time" class="stat-value">00:00</span>
           </div>
           <div class="stat-card">
-            <span class="stat-label">Max Streak</span>
+            <span id="sum-stat-lbl-3" class="stat-label">Max Streak</span>
             <span id="summary-streak" class="stat-value streak">0🔥</span>
           </div>
           <div class="stat-card">
-            <span class="stat-label">Avg Speed / Q</span>
+            <span id="sum-stat-lbl-4" class="stat-label">Avg Speed / Q</span>
             <span id="summary-avg-speed" class="stat-value">0.0s</span>
           </div>
         </div>
@@ -307,18 +436,17 @@
             Retake Missed Questions
           </button>
           <button id="btn-restart-quiz" class="btn-primary">
-            Start New Full Drill
+            Start New Session
           </button>
         </div>
 
         <!-- Overall General Statistics & Improvement Graph -->
-        <div class="analytics-section">
+        <div id="summary-analytics-section" class="analytics-section">
           <div class="analytics-header">
             <h3>Performance & Improvement Over Time</h3>
             <span id="analytics-trend-badge" class="badge-outline">All-Time Statistics</span>
           </div>
 
-          <!-- Overall General Statistics Grid -->
           <div class="overall-stats-grid">
             <div class="mini-stat-card">
               <span class="mini-stat-label">Total Sessions</span>
@@ -342,7 +470,6 @@
             </div>
           </div>
 
-          <!-- Improvement Graph (SVG Line & Area Chart) -->
           <div class="chart-wrapper">
             <div id="chart-container" class="chart-container">
               <!-- Rendered dynamically -->
@@ -351,7 +478,7 @@
         </div>
 
         <!-- Full Question Review List -->
-        <div class="review-section">
+        <div id="summary-review-section" class="review-section">
           <h3 id="review-title" style="font-size: 1.1rem; color: var(--foreground);">Detailed Review</h3>
           <div id="review-list">
             <!-- Rendered dynamically -->
@@ -365,47 +492,85 @@
       <div class="modal-container">
         <div class="modal-header">
           <div class="modal-title-group">
-            <span class="brand-badge">CONTENT</span>
-            <h3>Question Bank Manager</h3>
+            <span class="brand-badge">STUDY CONTENT</span>
+            <h3>Study Bank Manager</h3>
           </div>
           <button id="modal-close-btn" class="modal-close-icon" title="Close modal">&times;</button>
         </div>
 
+        <!-- Modal Tabs (Quiz Bank vs Flashcard Bank) -->
+        <div class="modal-tabs">
+          <button id="tab-btn-quiz" class="modal-tab active">
+            📝 Question Bank (MCQ)
+          </button>
+          <button id="tab-btn-flashcard" class="modal-tab">
+            🎴 Flashcard Bank
+          </button>
+        </div>
+
         <div class="modal-body">
-          <div id="bank-status-banner" class="bank-status-banner">
-            <span id="bank-status-text">No question bank currently loaded.</span>
-          </div>
-
-          <div class="modal-input-actions">
-            <label for="modal-file-input" class="btn-secondary file-label-btn">
-              📁 Choose File (.txt, .md)
-            </label>
-            <input type="file" id="modal-file-input" accept=".txt,.md,.markdown,.text,text/plain,text/markdown,*/*" class="hidden-file-input">
-            <span class="modal-hint">or paste the material below:</span>
-          </div>
-
-          <textarea id="bank-textarea" class="bank-textarea" placeholder="Paste your Question Bank reference material here... (e.g. ## Quiz 1&#10;### Question 1&#10;What is...?&#10;A. Option 1&#10;B. Option 2 **[CORRECT]**)"></textarea>
-
-          <div id="parse-preview-box" class="parse-preview-box hidden">
-            <div class="preview-header">
-              <span class="preview-badge">Preview</span>
-              <span id="preview-summary-text">0 Quizzes, 0 Questions parsed</span>
+          <!-- Quiz Bank Tab Panel -->
+          <div id="tab-panel-quiz" class="modal-tab-panel">
+            <div id="quiz-bank-status-banner" class="bank-status-banner">
+              <span id="quiz-bank-status-text">No question bank currently loaded.</span>
             </div>
-            <div id="preview-quizzes-list" class="preview-quizzes-list"></div>
+
+            <div class="modal-input-actions">
+              <label for="modal-quiz-file-input" class="btn-secondary file-label-btn">
+                📁 Choose File (.txt, .md)
+              </label>
+              <input type="file" id="modal-quiz-file-input" accept=".txt,.md,.markdown,.text,text/plain,text/markdown,*/*" class="hidden-file-input">
+              <span class="modal-hint">or paste the material below:</span>
+            </div>
+
+            <textarea id="modal-quiz-textarea" class="bank-textarea" placeholder="Paste your Question Bank reference material here... (e.g. ## Quiz 1&#10;### Question 1&#10;What is...?&#10;A. Option 1&#10;B. Option 2 **[CORRECT]**)"></textarea>
+
+            <div id="quiz-parse-preview-box" class="parse-preview-box hidden">
+              <div class="preview-header">
+                <span class="preview-badge">Preview</span>
+                <span id="quiz-preview-summary-text">0 Quizzes, 0 Questions parsed</span>
+              </div>
+              <div id="quiz-preview-list" class="preview-quizzes-list"></div>
+            </div>
+          </div>
+
+          <!-- Flashcard Bank Tab Panel -->
+          <div id="tab-panel-flashcard" class="modal-tab-panel hidden">
+            <div id="fc-bank-status-banner" class="bank-status-banner">
+              <span id="fc-bank-status-text">No flashcard deck currently loaded.</span>
+            </div>
+
+            <div class="modal-input-actions">
+              <label for="modal-fc-file-input" class="btn-secondary file-label-btn">
+                📁 Choose File (.txt, .md)
+              </label>
+              <input type="file" id="modal-fc-file-input" accept=".txt,.md,.markdown,.text,text/plain,text/markdown,*/*" class="hidden-file-input">
+              <span class="modal-hint">or paste the material below:</span>
+            </div>
+
+            <textarea id="modal-fc-textarea" class="bank-textarea" placeholder="Paste your Flashcard deck here... (e.g. ## Part I: Spark&#10;### Question 1&#10;What is an RDD?&#10;**Answer:** An RDD is a Resilient Distributed Dataset...)"></textarea>
+
+            <div id="fc-parse-preview-box" class="parse-preview-box hidden">
+              <div class="preview-header">
+                <span class="preview-badge">Preview</span>
+                <span id="fc-preview-summary-text">0 Decks, 0 Cards parsed</span>
+              </div>
+              <div id="fc-preview-list" class="preview-quizzes-list"></div>
+            </div>
           </div>
         </div>
 
         <div class="modal-footer">
           <div class="modal-footer-left">
-            <button id="btn-clear-bank" class="btn-destructive hidden">
-              Delete Bank
+            <button id="btn-clear-active-bank" class="btn-destructive hidden">
+              Delete Current Bank
             </button>
           </div>
           <div class="modal-footer-right">
             <button id="btn-cancel-modal" class="btn-secondary">
-              Cancel
+              Close
             </button>
-            <button id="btn-save-bank" class="btn-primary" disabled>
+            <button id="btn-save-active-bank" class="btn-primary" disabled>
               Save & Load Bank
             </button>
           </div>

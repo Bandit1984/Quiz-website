@@ -5,13 +5,15 @@ class QuizApp {
     this.storageKeyBank = 'quiz_bank_raw';
     this.storageKeyMistakes = 'quiz_drill_mistakes';
     this.storageKeyHistory = 'quiz_drill_history';
+    this.storageKeyThemeMode = 'quiz_theme_mode';
+    this.storageKeyThemeAccent = 'quiz_theme_accent';
 
     // Bank & Question Pool State
     this.storedBankRaw = localStorage.getItem(this.storageKeyBank) || null;
     this.bankData = { title: '', quizzes: [], totalQuestions: 0 };
-    this.selectedQuizIds = new Set(); // Set of quiz ids
-    this.allQuestions = []; // Combined questions from selected quizzes
-    this.activeQuestions = []; // Filtered/ordered for the current drill
+    this.selectedQuizIds = new Set();
+    this.allQuestions = [];
+    this.activeQuestions = [];
     this.currentIndex = 0;
 
     // Quiz Session State
@@ -19,7 +21,7 @@ class QuizApp {
     this.order = 'original'; // 'original' | 'shuffle' | 'mistake'
     this.userAnswers = {}; // { [qId]: number | number[] }
     this.isAnswered = false;
-    this.selectedMultiOptions = new Set(); // Staging for multi-choice questions
+    this.selectedMultiOptions = new Set();
 
     // Timer & Metrics
     this.timerSeconds = 0;
@@ -31,11 +33,12 @@ class QuizApp {
     this.streak = 0;
     this.maxStreak = 0;
     this.mistakesSet = new Set(JSON.parse(localStorage.getItem(this.storageKeyMistakes) || '[]'));
-    this.autoAdvanceMs = 600;
+    this.autoAdvanceMs = 500; // 0.5s default as requested
     this.autoAdvanceTimeout = null;
 
-    // DOM Elements
+    // DOM Elements & Theme
     this.initDOMElements();
+    this.initTheme();
     this.bindEvents();
 
     // Initialize Bank or Empty State
@@ -43,10 +46,23 @@ class QuizApp {
   }
 
   initDOMElements() {
-    // Header
+    // Header & Theme
     this.brandTitle = document.getElementById('brand-title');
+    this.btnThemeToggle = document.getElementById('btn-theme-toggle');
+    this.themeIconSun = document.getElementById('theme-icon-sun');
+    this.themeIconMoon = document.getElementById('theme-icon-moon');
+    this.accentDots = document.querySelectorAll('.accent-dot');
+    this.btnFullscreen = document.getElementById('btn-fullscreen');
     this.btnManageBank = document.getElementById('btn-manage-bank');
     this.restartBtn = document.getElementById('btn-restart');
+
+    // Zen Fullscreen Bar
+    this.fullscreenZenBar = document.getElementById('fullscreen-zen-bar');
+    this.zenQuizTitle = document.getElementById('zen-quiz-title');
+    this.zenCounter = document.getElementById('zen-counter');
+    this.zenStreak = document.getElementById('zen-streak');
+    this.zenAccuracy = document.getElementById('zen-accuracy');
+    this.btnExitZen = document.getElementById('btn-exit-zen');
 
     // Empty State
     this.emptyStateView = document.getElementById('empty-state-view');
@@ -55,17 +71,16 @@ class QuizApp {
     this.emptyBtnPaste = document.getElementById('empty-btn-paste');
     this.mainAppContent = document.getElementById('main-app-content');
 
-    // Quiz Filter Bar
-    this.quizFilterBar = document.getElementById('quiz-filter-bar');
-    this.btnFilterAll = document.getElementById('btn-filter-all');
-    this.filterAllCount = document.getElementById('filter-all-count');
-    this.filterChipsList = document.getElementById('filter-chips-list');
-
-    // Control Bar
+    // Top Toolbar & Controls
+    this.btnQuizDropdown = document.getElementById('btn-quiz-dropdown');
+    this.quizDropdownLabel = document.getElementById('quiz-dropdown-label');
+    this.quizDropdownPopover = document.getElementById('quiz-dropdown-popover');
+    this.btnSelectAllQuizzes = document.getElementById('btn-select-all-quizzes');
+    this.quizDropdownList = document.getElementById('quiz-dropdown-list');
     this.modeDrillBtn = document.getElementById('mode-drill');
     this.modeExamBtn = document.getElementById('mode-exam');
-    this.orderSelect = document.getElementById('order-select');
-    this.autoAdvanceSelect = document.getElementById('autoadvance-select');
+    this.shuffleToggle = document.getElementById('shuffle-toggle');
+    this.autoAdvanceToggle = document.getElementById('autoadvance-toggle');
 
     // HUD Stats
     this.hudStreak = document.getElementById('hud-streak');
@@ -78,7 +93,6 @@ class QuizApp {
     this.quizView = document.getElementById('quiz-view');
     this.summaryView = document.getElementById('summary-view');
     this.qQuizTitle = document.getElementById('q-quiz-title');
-    this.qBadge = document.getElementById('q-badge');
     this.qCounter = document.getElementById('q-counter');
     this.multiSelectBadge = document.getElementById('multi-select-badge');
     this.questionText = document.getElementById('question-text');
@@ -87,6 +101,7 @@ class QuizApp {
     this.btnPrev = document.getElementById('btn-prev');
     this.btnSubmitAnswer = document.getElementById('btn-submit-answer');
     this.btnNext = document.getElementById('btn-next');
+    this.btnNextLabel = document.getElementById('btn-next-label');
 
     // Summary View
     this.summaryScore = document.getElementById('summary-score');
@@ -95,10 +110,19 @@ class QuizApp {
     this.summaryTime = document.getElementById('summary-time');
     this.summaryStreak = document.getElementById('summary-streak');
     this.summaryAvgSpeed = document.getElementById('summary-avg-speed');
-    this.reviewTitle = document.getElementById('review-title');
-    this.reviewList = document.getElementById('review-list');
     this.btnRetryMistakes = document.getElementById('btn-retry-mistakes');
     this.btnRestartQuiz = document.getElementById('btn-restart-quiz');
+
+    // Overall General Stats & Analytics
+    this.analyticsTrendBadge = document.getElementById('analytics-trend-badge');
+    this.overallSessionsCount = document.getElementById('overall-sessions-count');
+    this.overallAccuracy = document.getElementById('overall-accuracy');
+    this.overallTotalQuestions = document.getElementById('overall-total-questions');
+    this.overallBestStreak = document.getElementById('overall-best-streak');
+    this.overallAvgSpeed = document.getElementById('overall-avg-speed');
+    this.chartContainer = document.getElementById('chart-container');
+    this.reviewTitle = document.getElementById('review-title');
+    this.reviewList = document.getElementById('review-list');
 
     // Modal Elements
     this.bankModal = document.getElementById('bank-modal');
@@ -114,13 +138,62 @@ class QuizApp {
     this.btnSaveBank = document.getElementById('btn-save-bank');
   }
 
+  initTheme() {
+    const savedTheme = localStorage.getItem(this.storageKeyThemeMode) || 'dark';
+    if (savedTheme === 'light') {
+      document.body.classList.add('light');
+      if (this.themeIconSun) this.themeIconSun.classList.remove('hidden');
+      if (this.themeIconMoon) this.themeIconMoon.classList.add('hidden');
+    } else {
+      document.body.classList.remove('light');
+      if (this.themeIconSun) this.themeIconSun.classList.add('hidden');
+      if (this.themeIconMoon) this.themeIconMoon.classList.remove('hidden');
+    }
+
+    const savedAccent = localStorage.getItem(this.storageKeyThemeAccent) || 'zinc';
+    document.body.dataset.accent = savedAccent;
+    this.accentDots.forEach(dot => {
+      dot.classList.toggle('active', dot.dataset.accent === savedAccent);
+    });
+  }
+
+  toggleThemeMode() {
+    const isLight = document.body.classList.toggle('light');
+    const newTheme = isLight ? 'light' : 'dark';
+    localStorage.setItem(this.storageKeyThemeMode, newTheme);
+
+    if (this.themeIconSun) this.themeIconSun.classList.toggle('hidden', !isLight);
+    if (this.themeIconMoon) this.themeIconMoon.classList.toggle('hidden', isLight);
+  }
+
+  setAccent(accent) {
+    document.body.dataset.accent = accent;
+    localStorage.setItem(this.storageKeyThemeAccent, accent);
+    this.accentDots.forEach(dot => {
+      dot.classList.toggle('active', dot.dataset.accent === accent);
+    });
+  }
+
   bindEvents() {
+    // Theme Events
+    if (this.btnThemeToggle) {
+      this.btnThemeToggle.addEventListener('click', () => this.toggleThemeMode());
+    }
+    this.accentDots.forEach(dot => {
+      dot.addEventListener('click', () => this.setAccent(dot.dataset.accent));
+    });
+
     // Header & Modal Actions
     this.btnManageBank.addEventListener('click', () => this.openBankModal(false));
     this.modalCloseBtn.addEventListener('click', () => this.closeBankModal());
     this.btnCancelModal.addEventListener('click', () => this.closeBankModal());
     this.btnClearBank.addEventListener('click', () => this.clearBank());
     this.btnSaveBank.addEventListener('click', () => this.saveBankFromModal());
+
+    // Fullscreen / Zen Mode
+    this.btnFullscreen.addEventListener('click', () => this.toggleZenMode());
+    this.btnExitZen.addEventListener('click', () => this.exitZenMode());
+    document.addEventListener('fullscreenchange', () => this.onFullscreenChange());
 
     // Modal Backdrop Click
     this.bankModal.addEventListener('click', (e) => {
@@ -144,25 +217,47 @@ class QuizApp {
     // Textarea input in modal (Live preview)
     this.bankTextarea.addEventListener('input', () => this.updateModalPreview());
 
-    // Filter Chips Events
-    this.btnFilterAll.addEventListener('click', () => this.selectAllQuizzes(true));
+    // Quiz Dropdown Popover
+    this.btnQuizDropdown.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isHidden = this.quizDropdownPopover.classList.contains('hidden');
+      this.quizDropdownPopover.classList.toggle('hidden', !isHidden);
+      this.btnQuizDropdown.setAttribute('aria-expanded', isHidden);
+    });
+
+    this.btnSelectAllQuizzes.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.selectAllQuizzes(true);
+    });
+
+    // Close dropdown popover on click outside
+    document.addEventListener('click', (e) => {
+      if (!this.quizDropdownPopover.contains(e.target) && !this.btnQuizDropdown.contains(e.target)) {
+        this.quizDropdownPopover.classList.add('hidden');
+        this.btnQuizDropdown.setAttribute('aria-expanded', 'false');
+      }
+    });
 
     // Mode Switching
     this.modeDrillBtn.addEventListener('click', () => this.switchMode('drill'));
     this.modeExamBtn.addEventListener('click', () => this.switchMode('exam'));
 
-    // Order & Auto Advance
-    this.orderSelect.addEventListener('change', (e) => {
-      this.order = e.target.value;
-      this.startSession();
-    });
+    // Shuffle & Auto Advance Toggles
+    if (this.shuffleToggle) {
+      this.shuffleToggle.addEventListener('change', (e) => {
+        this.order = e.target.checked ? 'shuffle' : 'original';
+        this.startSession();
+      });
+    }
 
-    this.autoAdvanceSelect.addEventListener('change', (e) => {
-      this.autoAdvanceMs = parseInt(e.target.value, 10);
-    });
+    if (this.autoAdvanceToggle) {
+      this.autoAdvanceToggle.addEventListener('change', (e) => {
+        this.autoAdvanceMs = e.target.checked ? 500 : 0;
+      });
+    }
 
     // Navigation & Actions
-    this.restartBtn.addEventListener('click', () => this.startSession());
+    this.restartBtn.addEventListener('click', () => this.restartSession());
     this.btnPrev.addEventListener('click', () => this.prevQuestion());
     this.btnSubmitAnswer.addEventListener('click', () => this.submitMultiAnswer());
     this.btnNext.addEventListener('click', () => this.handleNextOrSubmit());
@@ -170,20 +265,45 @@ class QuizApp {
     // Summary Actions
     this.btnRetryMistakes.addEventListener('click', () => {
       this.order = 'mistake';
-      this.orderSelect.value = 'mistake';
       this.startSession();
     });
 
     this.btnRestartQuiz.addEventListener('click', () => {
-      this.startSession();
+      this.restartSession();
     });
 
-    // Keyboard Shortcuts
+    // Keyboard Shortcuts (D, F, J, K, etc.)
     document.addEventListener('keydown', (e) => this.handleKeyDown(e));
   }
 
+  restartSession() {
+    this.order = this.shuffleToggle && this.shuffleToggle.checked ? 'shuffle' : 'original';
+    this.startSession();
+  }
+
+  toggleZenMode() {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+      document.body.classList.add('fullscreen-mode');
+    } else {
+      document.exitFullscreen().catch(() => {});
+      document.body.classList.remove('fullscreen-mode');
+    }
+  }
+
+  exitZenMode() {
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(() => {});
+    }
+    document.body.classList.remove('fullscreen-mode');
+  }
+
+  onFullscreenChange() {
+    const isFs = !!document.fullscreenElement;
+    document.body.classList.toggle('fullscreen-mode', isFs);
+  }
+
   setupDragAndDrop() {
-    // Prevent default drag and drop across the entire window so browser doesn't open the file
     window.addEventListener('dragover', (e) => e.preventDefault());
     window.addEventListener('drop', (e) => e.preventDefault());
 
@@ -221,7 +341,7 @@ class QuizApp {
     const file = e.target.files && e.target.files[0];
     if (file) {
       this.readFile(file, autoSave);
-      e.target.value = ''; // Reset so the same file can be selected again
+      e.target.value = '';
     }
   }
 
@@ -242,13 +362,11 @@ class QuizApp {
       }
 
       if (autoSave) {
-        // Automatically save and start quiz immediately
         localStorage.setItem(this.storageKeyBank, content);
         this.closeBankModal();
         this.selectedQuizIds.clear();
         this.loadBank();
       } else {
-        // Fill modal textarea and show preview
         this.bankTextarea.value = content;
         this.updateModalPreview();
       }
@@ -266,7 +384,6 @@ class QuizApp {
     this.storedBankRaw = localStorage.getItem(this.storageKeyBank) || null;
 
     if (!this.storedBankRaw) {
-      // Empty state
       this.emptyStateView.classList.remove('hidden');
       this.mainAppContent.classList.add('hidden');
       this.brandTitle.textContent = 'Quiz Drill Memorizer';
@@ -285,13 +402,11 @@ class QuizApp {
     this.emptyStateView.classList.add('hidden');
     this.mainAppContent.classList.remove('hidden');
 
-    // Dynamic brand title
     this.brandTitle.textContent = this.bankData.title || 'Quiz Drill Memorizer';
 
-    // Render filter chips
-    this.renderFilterChips();
+    // Populate dropdown
+    this.renderQuizDropdown();
 
-    // Select all quizzes by default on initial load
     if (this.selectedQuizIds.size === 0) {
       this.selectAllQuizzes(true);
     } else {
@@ -300,48 +415,61 @@ class QuizApp {
     }
   }
 
-  renderFilterChips() {
-    this.filterChipsList.innerHTML = '';
-    this.filterAllCount.textContent = this.bankData.totalQuestions;
+  renderQuizDropdown() {
+    this.quizDropdownList.innerHTML = '';
 
     this.bankData.quizzes.forEach(quiz => {
-      const chip = document.createElement('button');
-      chip.className = 'filter-chip';
-      chip.dataset.id = quiz.id;
-      chip.innerHTML = `
-        <span class="chip-name">${quiz.title}</span>
-        <span class="chip-count">${quiz.questions.length}</span>
+      const label = document.createElement('label');
+      label.className = 'popover-item';
+      const isChecked = this.selectedQuizIds.has(quiz.id);
+
+      label.innerHTML = `
+        <div class="popover-item-left">
+          <input type="checkbox" class="popover-checkbox" data-id="${quiz.id}" ${isChecked ? 'checked' : ''}>
+          <span class="popover-item-name">${quiz.title}</span>
+        </div>
+        <span class="popover-item-badge">${quiz.questions.length} Qs</span>
       `;
 
-      chip.addEventListener('click', () => this.toggleQuizSelection(quiz.id));
-      this.filterChipsList.appendChild(chip);
+      const checkbox = label.querySelector('.popover-checkbox');
+      checkbox.addEventListener('change', (e) => {
+        e.stopPropagation();
+        this.toggleQuizSelection(quiz.id);
+      });
+
+      this.quizDropdownList.appendChild(label);
     });
 
-    this.updateFilterChipsUI();
+    this.updateQuizDropdownUI();
   }
 
-  updateFilterChipsUI() {
+  updateQuizDropdownUI() {
     const isAllSelected = this.selectedQuizIds.size === this.bankData.quizzes.length;
+
+    // Update Dropdown Label Text
     if (isAllSelected) {
-      this.btnFilterAll.classList.add('active');
+      this.quizDropdownLabel.textContent = `All Quizzes (${this.bankData.totalQuestions} Questions)`;
+    } else if (this.selectedQuizIds.size === 1) {
+      const qz = this.bankData.quizzes.find(q => this.selectedQuizIds.has(q.id));
+      this.quizDropdownLabel.textContent = qz ? `${qz.title} (${qz.questions.length} Qs)` : '1 Quiz Selected';
     } else {
-      this.btnFilterAll.classList.remove('active');
+      const count = this.bankData.quizzes
+        .filter(q => this.selectedQuizIds.has(q.id))
+        .reduce((sum, q) => sum + q.questions.length, 0);
+      this.quizDropdownLabel.textContent = `${this.selectedQuizIds.size} Quizzes Selected (${count} Qs)`;
     }
 
-    const chips = this.filterChipsList.querySelectorAll('.filter-chip');
-    chips.forEach(chip => {
-      const qId = chip.dataset.id;
-      if (this.selectedQuizIds.has(qId)) {
-        chip.classList.add('active');
-      } else {
-        chip.classList.remove('active');
-      }
+    // Sync Checkboxes
+    const checkboxes = this.quizDropdownList.querySelectorAll('.popover-checkbox');
+    checkboxes.forEach(cb => {
+      const qId = cb.dataset.id;
+      cb.checked = this.selectedQuizIds.has(qId);
     });
   }
 
   selectAllQuizzes(triggerSession = true) {
     this.selectedQuizIds = new Set(this.bankData.quizzes.map(q => q.id));
-    this.updateFilterChipsUI();
+    this.updateQuizDropdownUI();
     this.rebuildQuestionsPool();
     if (triggerSession) this.startSession();
   }
@@ -350,11 +478,10 @@ class QuizApp {
     const isAllSelected = this.selectedQuizIds.size === this.bankData.quizzes.length;
 
     if (isAllSelected) {
-      // If all were active, isolate just this clicked quiz
+      // Isolate clicked quiz
       this.selectedQuizIds = new Set([quizId]);
     } else if (this.selectedQuizIds.has(quizId)) {
       this.selectedQuizIds.delete(quizId);
-      // If nothing remains selected, revert to all
       if (this.selectedQuizIds.size === 0) {
         this.selectedQuizIds = new Set(this.bankData.quizzes.map(q => q.id));
       }
@@ -362,7 +489,7 @@ class QuizApp {
       this.selectedQuizIds.add(quizId);
     }
 
-    this.updateFilterChipsUI();
+    this.updateQuizDropdownUI();
     this.rebuildQuestionsPool();
     this.startSession();
   }
@@ -407,9 +534,10 @@ class QuizApp {
       const filtered = this.allQuestions.filter(q => this.mistakesSet.has(q.id));
       if (filtered.length === 0) {
         alert('No saved mistakes in selected quizzes! Reverting to all questions.');
-        this.order = 'original';
-        this.orderSelect.value = 'original';
-        this.activeQuestions = [...this.allQuestions];
+        this.order = this.shuffleToggle && this.shuffleToggle.checked ? 'shuffle' : 'original';
+        this.activeQuestions = this.order === 'shuffle'
+          ? [...this.allQuestions].sort(() => Math.random() - 0.5)
+          : [...this.allQuestions];
       } else {
         this.activeQuestions = filtered;
       }
@@ -450,17 +578,23 @@ class QuizApp {
     this.isAnswered = this.userAnswers[q.id] !== undefined;
     this.selectedMultiOptions.clear();
 
-    // Populate staging set if already answered
     if (this.isAnswered && Array.isArray(this.userAnswers[q.id])) {
       this.userAnswers[q.id].forEach(idx => this.selectedMultiOptions.add(idx));
     }
 
     // Header info & Origin Badge
     this.qQuizTitle.textContent = q.quizTitle;
-    this.qBadge.textContent = `Question ${this.currentIndex + 1} of ${this.activeQuestions.length}`;
     this.qCounter.textContent = `Progress: ${this.currentIndex + 1} / ${this.activeQuestions.length}`;
 
-    // Question Prompt (supports tables and code formatting)
+    // Sync Zen Fullscreen bar
+    if (this.zenQuizTitle) {
+      this.zenQuizTitle.textContent = q.quizTitle;
+      this.zenCounter.textContent = `${this.currentIndex + 1} / ${this.activeQuestions.length}`;
+      this.zenStreak.textContent = `${this.streak}🔥`;
+      this.zenAccuracy.textContent = this.hudAccuracy ? this.hudAccuracy.textContent : '100%';
+    }
+
+    // Question Prompt
     if (q.formattedQuestion) {
       this.questionText.innerHTML = q.formattedQuestion;
     } else {
@@ -474,9 +608,9 @@ class QuizApp {
       this.multiSelectBadge.classList.add('hidden');
     }
 
-    // Options rendering
+    // Options rendering with D, F, J, K keys
     this.optionsList.innerHTML = '';
-    const optionKeys = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
+    const optionKeys = ['D', 'F', 'J', 'K', 'L', ';'];
 
     q.options.forEach((optText, index) => {
       const btn = document.createElement('button');
@@ -516,20 +650,21 @@ class QuizApp {
       this.optionsList.appendChild(btn);
     });
 
-    // Navigation buttons state
     this.btnPrev.disabled = this.currentIndex === 0;
 
-    // Multi-select Submit Button visibility
     if (q.isMultipleChoice && !this.isAnswered) {
       this.btnSubmitAnswer.classList.remove('hidden');
     } else {
       this.btnSubmitAnswer.classList.add('hidden');
     }
 
-    if (this.currentIndex === this.activeQuestions.length - 1) {
-      this.btnNext.innerHTML = `<span>${this.mode === 'exam' ? 'Submit Exam' : 'Finish Drill'}</span> ➔`;
-    } else {
-      this.btnNext.innerHTML = `<span>Next</span> ➔`;
+    // Update Next Button text without emojis, keeping matching nav button styling
+    if (this.btnNextLabel) {
+      if (this.currentIndex === this.activeQuestions.length - 1) {
+        this.btnNextLabel.textContent = this.mode === 'exam' ? 'Submit Exam' : 'Finish Drill';
+      } else {
+        this.btnNextLabel.textContent = 'Next';
+      }
     }
 
     // Feedback box in drill mode
@@ -543,8 +678,8 @@ class QuizApp {
         this.feedbackBox.innerHTML = `<div>✓ <strong>Correct!</strong> Excellent retention.</div> <span style="font-size:0.8rem; opacity:0.8">[Press Space / Enter to advance]</span>`;
       } else {
         this.feedbackBox.classList.add('wrong');
-        const correctLetters = q.correctAnswers.map(idx => optionKeys[idx]).join(', ');
-        const correctTexts = q.correctAnswers.map(idx => `<strong>${optionKeys[idx]}. ${q.options[idx]}</strong>`).join('<br>');
+        const correctLetters = q.correctAnswers.map(idx => optionKeys[idx] || idx + 1).join(', ');
+        const correctTexts = q.correctAnswers.map(idx => `<strong>${optionKeys[idx] || idx + 1}. ${q.options[idx]}</strong>`).join('<br>');
         this.feedbackBox.innerHTML = `<div>✗ <strong>Incorrect.</strong> Correct answer(s): <strong>${correctLetters}</strong><div style="margin-top:0.35rem; font-size:0.85rem;">${correctTexts}</div></div> <span style="font-size:0.8rem; opacity:0.8">[Press Space / Enter to advance]</span>`;
       }
     } else {
@@ -577,13 +712,11 @@ class QuizApp {
         this.selectedMultiOptions.add(index);
       }
 
-      // Update button visual state
       const btns = this.optionsList.querySelectorAll('.option-btn');
       if (btns[index]) {
         btns[index].classList.toggle('multi-selected', this.selectedMultiOptions.has(index));
       }
     } else {
-      // Single choice
       this.selectSingleOption(index);
     }
   }
@@ -658,7 +791,6 @@ class QuizApp {
   }
 
   handleNextOrSubmit() {
-    // In Exam Mode, if multi-choice question has selections but wasn't explicitly submitted, record them now
     const q = this.activeQuestions[this.currentIndex];
     if (this.mode === 'exam' && q && q.isMultipleChoice && this.userAnswers[q.id] === undefined && this.selectedMultiOptions.size > 0) {
       this.userAnswers[q.id] = Array.from(this.selectedMultiOptions).sort((a, b) => a - b);
@@ -688,7 +820,6 @@ class QuizApp {
   }
 
   handleKeyDown(e) {
-    // Disable shortcuts if in form input, textarea, modal open, or empty state visible
     if (
       ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName) ||
       (this.bankModal && this.bankModal.open) ||
@@ -698,25 +829,48 @@ class QuizApp {
     }
 
     const key = e.key.toUpperCase();
+
+    // Shift + F toggles Zen mode
+    if (e.shiftKey && key === 'F') {
+      e.preventDefault();
+      this.toggleZenMode();
+      return;
+    }
+
+    // Escape exits Zen mode
+    if (e.key === 'Escape' && document.body.classList.contains('fullscreen-mode')) {
+      e.preventDefault();
+      this.exitZenMode();
+      return;
+    }
+
+    // D, F, J, K mapping (Home row rhythm keys requested by user)
     const keyMap = {
-      'A': 0, '1': 0,
-      'B': 1, '2': 1,
-      'C': 2, '3': 2,
-      'D': 3, '4': 3,
-      'E': 4, '5': 4,
-      'F': 5, '6': 5
+      'D': 0, 'd': 0,
+      'F': 1, 'f': 1,
+      'J': 2, 'j': 2,
+      'K': 3, 'k': 3,
+      'L': 4, 'l': 4,
+      ';': 5,
+      // Fallback number keys
+      '1': 0, '2': 1, '3': 2, '4': 3, '5': 4, '6': 5,
+      // Fallback letter keys
+      'A': 0, 'a': 0,
+      'B': 1, 'b': 1,
+      'C': 2, 'c': 2
     };
 
-    if (keyMap[key] !== undefined && this.summaryView.classList.contains('hidden')) {
+    if ((keyMap[e.key] !== undefined || keyMap[key] !== undefined) && this.summaryView.classList.contains('hidden')) {
       e.preventDefault();
-      this.handleOptionClick(keyMap[key]);
+      const optionIdx = keyMap[key] !== undefined ? keyMap[key] : keyMap[e.key];
+      this.handleOptionClick(optionIdx);
       return;
     }
 
     if (e.key === ' ' || e.key === 'Enter') {
       e.preventDefault();
       if (!this.summaryView.classList.contains('hidden')) {
-        this.startSession();
+        this.restartSession();
       } else {
         const q = this.activeQuestions[this.currentIndex];
         if (q && q.isMultipleChoice && !this.isAnswered && this.selectedMultiOptions.size > 0) {
@@ -730,7 +884,7 @@ class QuizApp {
 
     if (key === 'R') {
       e.preventDefault();
-      this.startSession();
+      this.restartSession();
       return;
     }
   }
@@ -748,6 +902,8 @@ class QuizApp {
     if (answeredCount === 0) {
       this.hudAccuracy.textContent = '100%';
       this.hudAvgSpeed.textContent = '0.0s';
+      if (this.zenAccuracy) this.zenAccuracy.textContent = '100%';
+      if (this.zenStreak) this.zenStreak.textContent = `${this.streak}🔥`;
       return;
     }
 
@@ -770,6 +926,9 @@ class QuizApp {
 
     const avgSpeed = (totalTime / answeredCount).toFixed(1);
     this.hudAvgSpeed.textContent = `${avgSpeed}s`;
+
+    if (this.zenAccuracy) this.zenAccuracy.textContent = `${accuracy}%`;
+    if (this.zenStreak) this.zenStreak.textContent = `${this.streak}🔥`;
   }
 
   updateProgressBar() {
@@ -783,6 +942,7 @@ class QuizApp {
 
   finishSession() {
     if (this.timerInterval) clearInterval(this.timerInterval);
+    if (this.autoAdvanceTimeout) clearTimeout(this.autoAdvanceTimeout);
 
     this.quizView.classList.add('hidden');
     this.summaryView.classList.remove('hidden');
@@ -802,7 +962,7 @@ class QuizApp {
     });
 
     const accuracyPct = total > 0 ? Math.round((correctCount / total) * 100) : 100;
-    const avgSpeed = total > 0 ? (totalTime / total).toFixed(1) : 0;
+    const avgSpeed = total > 0 ? parseFloat((totalTime / total).toFixed(1)) : 0;
 
     const mins = Math.floor(this.timerSeconds / 60);
     const secs = this.timerSeconds % 60;
@@ -817,7 +977,7 @@ class QuizApp {
 
     // Render detailed review list
     this.reviewList.innerHTML = '';
-    const optionLetters = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
+    const optionLetters = ['D', 'F', 'J', 'K', 'L', ';'];
 
     this.activeQuestions.forEach(q => {
       const userSel = this.userAnswers[q.id];
@@ -831,18 +991,18 @@ class QuizApp {
         userAnsHTML = `<span class="ans-user-wrong">Unanswered</span>`;
       } else if (!isCorrect) {
         if (Array.isArray(userSel)) {
-          const userLabels = userSel.map(idx => `${optionLetters[idx]}. ${q.options[idx]}`).join(', ');
+          const userLabels = userSel.map(idx => `${optionLetters[idx] || idx + 1}. ${q.options[idx]}`).join(', ');
           userAnsHTML = `<span class="ans-user-wrong">Your answer: ${userLabels}</span>`;
         } else {
-          userAnsHTML = `<span class="ans-user-wrong">Your answer: ${optionLetters[userSel]}. ${q.options[userSel]}</span>`;
+          userAnsHTML = `<span class="ans-user-wrong">Your answer: ${optionLetters[userSel] || userSel + 1}. ${q.options[userSel]}</span>`;
         }
       }
 
-      const correctLabels = q.correctAnswers.map(idx => `${optionLetters[idx]}. ${q.options[idx]}`).join(' | ');
+      const correctLabels = q.correctAnswers.map(idx => `${optionLetters[idx] || idx + 1}. ${q.options[idx]}`).join(' | ');
       const correctAnsHTML = `<span class="ans-correct">Correct answer: ${correctLabels}</span>`;
 
       item.innerHTML = `
-        <div class="review-q-title"><span class="q-quiz-badge">${q.quizTitle}</span> ${q.question}</div>
+        <div class="review-q-title"><span class="badge-outline">${q.quizTitle}</span> ${q.question}</div>
         <div class="review-answer">${userAnsHTML} ${correctAnsHTML}</div>
       `;
       this.reviewList.appendChild(item);
@@ -856,23 +1016,187 @@ class QuizApp {
       this.btnRetryMistakes.style.opacity = '1';
     }
 
-    this.saveHistoryRecord({
-      date: new Date().toLocaleString(),
+    // Save session record to history
+    const sessionRecord = {
+      id: Date.now().toString(),
+      timestamp: Date.now(),
+      date: new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
       mode: this.mode,
       score: `${correctCount}/${total}`,
+      correctCount,
+      totalQuestions: total,
       accuracy: accuracyPct,
-      time: timeFormatted
+      avgSpeed,
+      durationSeconds: this.timerSeconds,
+      maxStreak: this.maxStreak
+    };
+
+    const history = JSON.parse(localStorage.getItem(this.storageKeyHistory) || '[]');
+    history.push(sessionRecord);
+    const savedHistory = history.slice(-30);
+    localStorage.setItem(this.storageKeyHistory, JSON.stringify(savedHistory));
+
+    // Compute Overall General Statistics
+    this.updateOverallStatistics(savedHistory);
+
+    // Render Improvement Graph
+    this.renderImprovementChart(savedHistory);
+  }
+
+  updateOverallStatistics(history) {
+    if (!history || history.length === 0) return;
+
+    const totalSessions = history.length;
+    const totalAnswered = history.reduce((sum, s) => sum + (s.totalQuestions || 0), 0);
+    const totalCorrect = history.reduce((sum, s) => sum + (s.correctCount || 0), 0);
+    const overallAcc = totalAnswered > 0 ? Math.round((totalCorrect / totalAnswered) * 100) : 100;
+    const bestStreak = Math.max(0, ...history.map(s => s.maxStreak || 0));
+    const totalDuration = history.reduce((sum, s) => sum + (s.durationSeconds || 0), 0);
+    const overallSpeed = totalAnswered > 0 ? (totalDuration / totalAnswered).toFixed(1) : '0.0';
+
+    if (this.overallSessionsCount) this.overallSessionsCount.textContent = totalSessions.toString();
+    if (this.overallAccuracy) this.overallAccuracy.textContent = `${overallAcc}%`;
+    if (this.overallTotalQuestions) this.overallTotalQuestions.textContent = totalAnswered.toString();
+    if (this.overallBestStreak) this.overallBestStreak.textContent = `${bestStreak}🔥`;
+    if (this.overallAvgSpeed) this.overallAvgSpeed.textContent = `${overallSpeed}s`;
+
+    // Trend Badge
+    if (this.analyticsTrendBadge) {
+      if (history.length >= 2) {
+        const latestAcc = history[history.length - 1].accuracy;
+        const prevAcc = history[history.length - 2].accuracy;
+        const delta = latestAcc - prevAcc;
+        if (delta > 0) {
+          this.analyticsTrendBadge.textContent = `+${delta}% vs Previous Drill ↗`;
+          this.analyticsTrendBadge.style.borderColor = 'var(--color-correct)';
+          this.analyticsTrendBadge.style.color = 'var(--color-correct)';
+        } else if (delta < 0) {
+          this.analyticsTrendBadge.textContent = `${delta}% vs Previous Drill ↘`;
+          this.analyticsTrendBadge.style.borderColor = 'var(--color-wrong)';
+          this.analyticsTrendBadge.style.color = 'var(--color-wrong)';
+        } else {
+          this.analyticsTrendBadge.textContent = `Maintained ${latestAcc}% Accuracy →`;
+          this.analyticsTrendBadge.style.borderColor = 'var(--border)';
+          this.analyticsTrendBadge.style.color = 'var(--muted-foreground)';
+        }
+      } else {
+        this.analyticsTrendBadge.textContent = 'Baseline Established';
+        this.analyticsTrendBadge.style.borderColor = 'var(--border)';
+        this.analyticsTrendBadge.style.color = 'var(--muted-foreground)';
+      }
+    }
+  }
+
+  renderImprovementChart(history) {
+    if (!this.chartContainer) return;
+    if (!history || history.length === 0) {
+      this.chartContainer.innerHTML = `
+        <div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted-foreground);font-size:0.88rem;">
+          Complete your first drill session to track improvement over time.
+        </div>`;
+      return;
+    }
+
+    const data = history.slice(-15);
+    const N = data.length;
+
+    const width = 600;
+    const height = 200;
+    const padLeft = 45;
+    const padRight = 30;
+    const padTop = 25;
+    const padBottom = 35;
+
+    const chartW = width - padLeft - padRight;
+    const chartH = height - padTop - padBottom;
+    const baseY = padTop + chartH;
+
+    // Grid lines at 100%, 75%, 50%, 25%, 0%
+    const gridLevels = [100, 75, 50, 25, 0];
+    let gridLinesSVG = '';
+    gridLevels.forEach(pct => {
+      const y = padTop + (1 - pct / 100) * chartH;
+      gridLinesSVG += `
+        <line x1="${padLeft}" y1="${y}" x2="${width - padRight}" y2="${y}" class="chart-grid-line" />
+        <text x="${padLeft - 8}" y="${y + 3}" class="chart-axis-text" text-anchor="end">${pct}%</text>
+      `;
     });
+
+    const points = data.map((session, index) => {
+      const x = N === 1 ? (padLeft + chartW / 2) : (padLeft + (index / (N - 1)) * chartW);
+      const acc = Math.max(0, Math.min(100, session.accuracy));
+      const y = padTop + (1 - acc / 100) * chartH;
+      return { x, y, session, index };
+    });
+
+    let linePath = '';
+    let areaPath = '';
+    let pointsSVG = '';
+    let xLabelsSVG = '';
+
+    if (N === 1) {
+      const p = points[0];
+      pointsSVG = `
+        <line x1="${padLeft}" y1="${p.y}" x2="${width - padRight}" y2="${p.y}" stroke="var(--chart-primary)" stroke-dasharray="4 4" stroke-opacity="0.4" stroke-width="1.5" />
+        <circle cx="${p.x}" cy="${p.y}" r="6" class="chart-point">
+          <title>Session 1: ${p.session.accuracy}% (${p.session.score}, ${p.session.avgSpeed}s/Q)</title>
+        </circle>
+        <text x="${p.x}" y="${p.y - 12}" class="chart-axis-text" text-anchor="middle" fill="var(--chart-primary)" font-weight="700">${p.session.accuracy}%</text>
+      `;
+      xLabelsSVG = `
+        <text x="${p.x}" y="${height - 10}" class="chart-axis-text" text-anchor="middle">Session 1</text>
+      `;
+    } else {
+      linePath = `M ${points[0].x.toFixed(1)} ${points[0].y.toFixed(1)}` + points.slice(1).map(p => ` L ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join('');
+      areaPath = `M ${points[0].x.toFixed(1)} ${baseY.toFixed(1)} L ${points[0].x.toFixed(1)} ${points[0].y.toFixed(1)}` +
+        points.slice(1).map(p => ` L ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join('') +
+        ` L ${points[points.length - 1].x.toFixed(1)} ${baseY.toFixed(1)} Z`;
+
+      points.forEach((p, idx) => {
+        const tooltip = `Session ${idx + 1}: ${p.session.accuracy}% (${p.session.score}) - ${p.session.avgSpeed}s/Q - ${p.session.date}`;
+        const showLabel = N <= 8 || idx === 0 || idx === N - 1 || idx === Math.floor(N / 2);
+        pointsSVG += `
+          <circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="4.5" class="chart-point">
+            <title>${tooltip}</title>
+          </circle>
+          ${showLabel ? `<text x="${p.x.toFixed(1)}" y="${(p.y - 10).toFixed(1)}" class="chart-axis-text" text-anchor="middle" font-weight="600">${p.session.accuracy}%</text>` : ''}
+        `;
+      });
+
+      xLabelsSVG += `<text x="${points[0].x.toFixed(1)}" y="${height - 10}" class="chart-axis-text" text-anchor="start">S1</text>`;
+      if (N > 2) {
+        const mid = Math.floor(N / 2);
+        xLabelsSVG += `<text x="${points[mid].x.toFixed(1)}" y="${height - 10}" class="chart-axis-text" text-anchor="middle">S${mid + 1}</text>`;
+      }
+      xLabelsSVG += `<text x="${points[points.length - 1].x.toFixed(1)}" y="${height - 10}" class="chart-axis-text" text-anchor="end">S${N}</text>`;
+    }
+
+    const svgHTML = `
+      <svg viewBox="0 0 ${width} ${height}" class="chart-svg" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="var(--chart-primary)" stop-opacity="0.25" />
+            <stop offset="100%" stop-color="var(--chart-primary)" stop-opacity="0.0" />
+          </linearGradient>
+        </defs>
+        <!-- Grid -->
+        ${gridLinesSVG}
+        <!-- Area Fill -->
+        ${areaPath ? `<path d="${areaPath}" fill="url(#chartGradient)" />` : ''}
+        <!-- Trend Line -->
+        ${linePath ? `<path d="${linePath}" class="chart-trend-line" />` : ''}
+        <!-- Data Points -->
+        ${pointsSVG}
+        <!-- X-Axis Labels -->
+        ${xLabelsSVG}
+      </svg>
+    `;
+
+    this.chartContainer.innerHTML = svgHTML;
   }
 
   saveMistakes() {
     localStorage.setItem(this.storageKeyMistakes, JSON.stringify(Array.from(this.mistakesSet)));
-  }
-
-  saveHistoryRecord(record) {
-    const history = JSON.parse(localStorage.getItem(this.storageKeyHistory) || '[]');
-    history.unshift(record);
-    localStorage.setItem(this.storageKeyHistory, JSON.stringify(history.slice(0, 20)));
   }
 
   // Bank Management Modal Operations
@@ -914,7 +1238,7 @@ class QuizApp {
     if (parsed.quizzes.length === 0) {
       this.parsePreviewBox.classList.remove('hidden');
       this.previewSummaryText.textContent = 'No valid quizzes or questions detected yet.';
-      this.previewQuizzesList.innerHTML = '<div style="color: var(--text-muted); font-size: 0.8rem;">Ensure sections start with "## Quiz Title", questions with "### Question", and options with "A.", "B.", etc.</div>';
+      this.previewQuizzesList.innerHTML = '<div style="color: var(--muted-foreground); font-size: 0.8rem;">Ensure sections start with "## Quiz Title", questions with "### Question", and options with "A.", "B.", etc.</div>';
       this.btnSaveBank.disabled = true;
       return;
     }

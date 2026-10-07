@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Quiz Drill Memorizer - Speed Drill & Exam Simulation</title>
   <meta name="description" content="High-speed quiz memorization and practice tool featuring keyboard shortcuts, multi-quiz filtering, instant feedback, and analytics.">
-  <script type="module" crossorigin src="/assets/index-BBtK-0XC.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/index-C4TOSkYp.css">
+  <script type="module" crossorigin src="/assets/index-EPr5BNPQ.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-DWHmBpys.css">
 </head>
 <body>
   <div class="app-container">
@@ -18,11 +18,51 @@
         <h1 id="brand-title" class="brand-title">Quiz Drill Memorizer</h1>
       </div>
       <div class="header-actions">
-        <button id="btn-manage-bank" class="btn-secondary" title="Manage or import Question Bank">
-          📚 Manage Bank
+        <!-- Theme Mode Toggle (Light / Dark) -->
+        <button id="btn-theme-toggle" class="btn-outline btn-icon-only" title="Toggle Light / Dark Mode">
+          <svg id="theme-icon-sun" class="btn-icon hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>
+          </svg>
+          <svg id="theme-icon-moon" class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
+          </svg>
         </button>
+
+        <!-- Theme Accent Picker -->
+        <div class="theme-accent-picker" title="Choose Accent Color">
+          <button class="accent-dot active" data-accent="zinc" style="background: #a1a1aa;"></button>
+          <button class="accent-dot" data-accent="indigo" style="background: #6366f1;"></button>
+          <button class="accent-dot" data-accent="emerald" style="background: #10b981;"></button>
+          <button class="accent-dot" data-accent="violet" style="background: #8b5cf6;"></button>
+        </div>
+
+        <!-- Zen Mode Toggle -->
+        <button id="btn-fullscreen" class="btn-outline" title="Toggle Fullscreen Zen Mode (Shift+F)">
+          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+          </svg>
+          <span class="btn-text">Zen Mode</span>
+        </button>
+
+        <!-- Bank Manager -->
+        <button id="btn-manage-bank" class="btn-secondary" title="Manage or import Question Bank">
+          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/>
+            <path d="M6 6h10"/>
+            <path d="M6 10h10"/>
+          </svg>
+          <span class="btn-text">Bank</span>
+        </button>
+
+        <!-- Restart Session -->
         <button id="btn-restart" class="btn-secondary" title="Restart current quiz session (Press R)">
-          🔄 Restart
+          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+            <path d="M21 3v5h-5"/>
+            <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+            <path d="M8 16H3v5"/>
+          </svg>
+          <span class="btn-text">Restart</span>
         </button>
       </div>
     </header>
@@ -32,7 +72,7 @@
       <div class="empty-icon">📂</div>
       <h2>No Question Bank Loaded</h2>
       <p class="empty-subtitle">
-        Upload your Question Bank file or paste your reference material to get started with instant drills and exams.
+        Upload your Question Bank file or paste reference material to get started with instant drills and exams.
       </p>
 
       <div class="drop-zone" id="empty-drop-zone">
@@ -53,123 +93,167 @@
 
     <!-- MAIN APP CONTENT (Hidden when empty) -->
     <div id="main-app-content" class="main-content-group hidden">
-      <!-- Quiz Filter Bar -->
-      <section id="quiz-filter-bar" class="quiz-filter-container">
-        <div class="filter-bar-header">
-          <span class="filter-title">Filter by Quiz:</span>
-          <button id="btn-filter-all" class="filter-chip active" data-quiz="all">
-            All (<span id="filter-all-count">0</span>)
+
+      <!-- Minimalist Fullscreen Zen Bar (Only shown in fullscreen mode) -->
+      <div id="fullscreen-zen-bar" class="fullscreen-zen-bar hidden">
+        <div class="zen-meta-left">
+          <span id="zen-quiz-title" class="badge-outline">Quiz Title</span>
+          <span id="zen-counter" class="zen-counter">1 / 201</span>
+        </div>
+        <div class="zen-meta-right">
+          <span id="zen-streak" class="zen-pill">0🔥</span>
+          <span id="zen-accuracy" class="zen-pill">100%</span>
+          <button id="btn-exit-zen" class="btn-ghost btn-sm" title="Exit Zen Mode (Esc)">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
+            </svg>
+            Exit Zen
           </button>
         </div>
-        <div id="filter-chips-list" class="filter-chips-list">
-          <!-- Dynamic quiz chips rendered here -->
-        </div>
-      </section>
+      </div>
 
-      <!-- Control Bar -->
-      <div class="control-bar">
+      <!-- Top Toolbar (Uncluttered Dropdown & Switches directly above HUD) -->
+      <div id="top-toolbar" class="top-toolbar">
+        <!-- Quiz Filter Dropdown Popover -->
+        <div class="dropdown-wrapper">
+          <button id="btn-quiz-dropdown" class="btn-select-trigger" aria-haspopup="true" aria-expanded="false" title="Filter by Quiz Title">
+            <svg class="dropdown-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/>
+              <path d="M6 6h10"/>
+            </svg>
+            <span id="quiz-dropdown-label" class="dropdown-label">All Quizzes (0 Qs)</span>
+            <svg class="chevron-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m6 9 6 6 6-6"/>
+            </svg>
+          </button>
+
+          <!-- Dropdown Popover Content -->
+          <div id="quiz-dropdown-popover" class="dropdown-popover hidden">
+            <div class="popover-header">
+              <span class="popover-title">Select Quizzes</span>
+              <button id="btn-select-all-quizzes" class="btn-link">Select All</button>
+            </div>
+            <div id="quiz-dropdown-list" class="popover-items-list">
+              <!-- Rendered dynamically -->
+            </div>
+          </div>
+        </div>
+
         <!-- Segmented Mode Control -->
         <div class="segmented-control">
           <button id="mode-drill" class="segmented-btn active" title="Instant right/wrong feedback per question">
-            ⚡ Fast Drill Mode
+            ⚡ Fast Drill
           </button>
           <button id="mode-exam" class="segmented-btn" title="Simulate exam uninterrupted">
-            📝 Exam Simulation
+            📝 Exam
           </button>
         </div>
 
-        <!-- Controls & Settings -->
-        <div class="options-group">
-          <label for="order-select" style="display:none;">Question Order</label>
-          <select id="order-select" class="select-control" title="Choose question sequence">
-            <option value="original">Original Order</option>
-            <option value="shuffle">Random Shuffle</option>
-            <option value="mistake">Mistake Drill (Missed Only)</option>
-          </select>
+        <!-- Toggles Group (Shuffle & Auto-Next On/Off) -->
+        <div class="toggles-group">
+          <!-- Shuffle Switch Toggle -->
+          <div class="toggle-control" title="Toggle between Original Order and Random Shuffle">
+            <label class="switch">
+              <input type="checkbox" id="shuffle-toggle">
+              <span class="slider"></span>
+            </label>
+            <span class="toggle-label">Shuffle</span>
+          </div>
 
-          <label for="autoadvance-select" style="display:none;">Auto Advance</label>
-          <select id="autoadvance-select" class="select-control" title="Auto advance delay after selecting an answer">
-            <option value="600">Auto Next: Fast (0.6s)</option>
-            <option value="1200">Auto Next: Medium (1.2s)</option>
-            <option value="0">Auto Next: Manual (Off)</option>
-          </select>
+          <!-- Auto Next Switch Toggle (0.5s default) -->
+          <div class="toggle-control" title="Toggle Auto Next after answering (0.5s default)">
+            <label class="switch">
+              <input type="checkbox" id="autoadvance-toggle" checked>
+              <span class="slider"></span>
+            </label>
+            <span class="toggle-label">Auto Next (0.5s)</span>
+          </div>
         </div>
       </div>
 
       <!-- HUD Stats Bar -->
-      <div class="stats-hud">
+      <div id="stats-hud" class="stats-hud">
         <div class="stat-card">
-          <span id="hud-streak" class="stat-value streak">0🔥</span>
           <span class="stat-label">Current Streak</span>
+          <span id="hud-streak" class="stat-value streak">0🔥</span>
         </div>
         <div class="stat-card">
-          <span id="hud-accuracy" class="stat-value accuracy">100%</span>
           <span class="stat-label">Accuracy</span>
+          <span id="hud-accuracy" class="stat-value accuracy">100%</span>
         </div>
         <div class="stat-card">
-          <span id="hud-timer" class="stat-value">00:00</span>
           <span class="stat-label">Elapsed Time</span>
+          <span id="hud-timer" class="stat-value">00:00</span>
         </div>
         <div class="stat-card">
-          <span id="hud-avg-speed" class="stat-value">0.0s</span>
           <span class="stat-label">Avg Speed / Q</span>
+          <span id="hud-avg-speed" class="stat-value">0.0s</span>
         </div>
       </div>
 
       <!-- Progress Bar -->
-      <div class="progress-container">
+      <div id="progress-container" class="progress-container">
         <div id="progress-bar" class="progress-fill"></div>
       </div>
 
-      <!-- MAIN QUIZ VIEW -->
+      <!-- MAIN QUIZ CARD (Fixed height container to keep Next button stable) -->
       <main id="quiz-view" class="quiz-card">
         <div class="question-meta">
           <div class="meta-left">
-            <span id="q-quiz-title" class="q-quiz-badge">Quiz Title</span>
-            <span id="q-badge" class="q-badge">Question 1 of 0</span>
+            <span id="q-quiz-title" class="badge-outline">Quiz Title</span>
           </div>
-          <span id="q-counter">Progress: 1 / 0</span>
+          <span id="q-counter" class="q-counter">Progress: 1 / 0</span>
         </div>
 
-        <div id="multi-select-badge" class="multi-select-indicator hidden">
-          ℹ️ Multiple Answers — Select all that apply
+        <!-- Scrollable content area so buttons remain fixed at bottom -->
+        <div class="question-content-area">
+          <div id="multi-select-badge" class="multi-select-indicator hidden">
+            ℹ️ Multiple Answers — Select all that apply
+          </div>
+
+          <div id="question-text" class="question-text">
+            Loading question...
+          </div>
+
+          <!-- Options -->
+          <div id="options-list" class="options-list">
+            <!-- Rendered dynamically -->
+          </div>
+
+          <!-- Instant Feedback Box (Fast Drill Mode) -->
+          <div id="feedback-box" class="feedback-box hidden">
+            <!-- Dynamic message -->
+          </div>
         </div>
 
-        <div id="question-text" class="question-text">
-          Loading question...
-        </div>
-
-        <!-- Options -->
-        <div id="options-list" class="options-list">
-          <!-- Rendered dynamically -->
-        </div>
-
-        <!-- Instant Feedback Box (Fast Drill Mode) -->
-        <div id="feedback-box" class="feedback-box hidden">
-          <!-- Dynamic message -->
-        </div>
-
-        <!-- Action Navigation -->
+        <!-- Fixed Action Navigation (No emojis, identical design) -->
         <div class="action-controls">
-          <button id="btn-prev" class="btn-secondary">
-            ⬅️ Prev
+          <button id="btn-prev" class="btn-nav">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m15 18-6-6 6-6"/>
+            </svg>
+            <span>Previous</span>
           </button>
           <div class="action-right">
             <button id="btn-submit-answer" class="btn-accent hidden">
-              ✓ Submit Answer
+              Submit Answer
             </button>
-            <button id="btn-next" class="btn-primary">
-              <span>Next</span> ➔
+            <button id="btn-next" class="btn-nav">
+              <span id="btn-next-label">Next</span>
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m9 18 6-6-6-6"/>
+              </svg>
             </button>
           </div>
         </div>
       </main>
 
       <!-- KEYBOARD LEGEND -->
-      <footer class="keyboard-bar">
-        <div class="kbd-item"><kbd>A</kbd>–<kbd>F</kbd> / <kbd>1</kbd>–<kbd>6</kbd> Select Answer</div>
-        <div class="kbd-item"><kbd>Space</kbd> / <kbd>Enter</kbd> Next Question / Submit</div>
-        <div class="kbd-item"><kbd>R</kbd> Restart Quiz</div>
+      <footer id="keyboard-bar" class="keyboard-bar">
+        <div class="kbd-item"><kbd>D</kbd> <kbd>F</kbd> <kbd>J</kbd> <kbd>K</kbd> Select Option</div>
+        <div class="kbd-item"><kbd>Space</kbd> / <kbd>Enter</kbd> Next / Submit</div>
+        <div class="kbd-item"><kbd>R</kbd> Restart</div>
+        <div class="kbd-item"><kbd>Shift</kbd>+<kbd>F</kbd> Zen Mode</div>
       </footer>
 
       <!-- SUMMARY / RESULTS VIEW (HIDDEN INITIALLY) -->
@@ -177,40 +261,79 @@
         <div class="summary-header">
           <h2>Drill Session Complete!</h2>
           <div id="summary-score" class="score-badge">0 / 0</div>
-          <p id="summary-subtitle" style="color: var(--text-secondary);">Here is your performance breakdown.</p>
+          <p id="summary-subtitle" style="color: var(--muted-foreground);">Here is your performance breakdown.</p>
         </div>
 
         <div class="summary-stats-grid">
           <div class="stat-card">
-            <span id="summary-accuracy" class="stat-value accuracy">100%</span>
             <span class="stat-label">Accuracy Rate</span>
+            <span id="summary-accuracy" class="stat-value accuracy">100%</span>
           </div>
           <div class="stat-card">
-            <span id="summary-time" class="stat-value">00:00</span>
             <span class="stat-label">Total Time</span>
+            <span id="summary-time" class="stat-value">00:00</span>
           </div>
           <div class="stat-card">
-            <span id="summary-streak" class="stat-value streak">0🔥</span>
             <span class="stat-label">Max Streak</span>
+            <span id="summary-streak" class="stat-value streak">0🔥</span>
           </div>
           <div class="stat-card">
-            <span id="summary-avg-speed" class="stat-value">0.0s</span>
             <span class="stat-label">Avg Speed / Q</span>
+            <span id="summary-avg-speed" class="stat-value">0.0s</span>
           </div>
         </div>
 
         <div class="summary-actions">
-          <button id="btn-retry-mistakes" class="btn-primary" style="background: linear-gradient(135deg, #f59e0b, #ef4444);">
-            🎯 Retake Missed Questions
+          <button id="btn-retry-mistakes" class="btn-outline">
+            Retake Missed Questions
           </button>
           <button id="btn-restart-quiz" class="btn-primary">
-            ⚡ Start New Full Drill
+            Start New Full Drill
           </button>
+        </div>
+
+        <!-- Overall General Statistics & Improvement Graph -->
+        <div class="analytics-section">
+          <div class="analytics-header">
+            <h3>Performance & Improvement Over Time</h3>
+            <span id="analytics-trend-badge" class="badge-outline">All-Time Statistics</span>
+          </div>
+
+          <!-- Overall General Statistics Grid -->
+          <div class="overall-stats-grid">
+            <div class="mini-stat-card">
+              <span class="mini-stat-label">Total Sessions</span>
+              <span id="overall-sessions-count" class="mini-stat-value">0</span>
+            </div>
+            <div class="mini-stat-card">
+              <span class="mini-stat-label">Overall Accuracy</span>
+              <span id="overall-accuracy" class="mini-stat-value">100%</span>
+            </div>
+            <div class="mini-stat-card">
+              <span class="mini-stat-label">Total Answered</span>
+              <span id="overall-total-questions" class="mini-stat-value">0</span>
+            </div>
+            <div class="mini-stat-card">
+              <span class="mini-stat-label">Best Streak</span>
+              <span id="overall-best-streak" class="mini-stat-value">0🔥</span>
+            </div>
+            <div class="mini-stat-card">
+              <span class="mini-stat-label">All-Time Speed</span>
+              <span id="overall-avg-speed" class="mini-stat-value">0.0s</span>
+            </div>
+          </div>
+
+          <!-- Improvement Graph (SVG Line & Area Chart) -->
+          <div class="chart-wrapper">
+            <div id="chart-container" class="chart-container">
+              <!-- Rendered dynamically -->
+            </div>
+          </div>
         </div>
 
         <!-- Full Question Review List -->
         <div class="review-section">
-          <h3 id="review-title" style="font-size: 1.1rem; color: var(--text-primary);">Detailed Review</h3>
+          <h3 id="review-title" style="font-size: 1.1rem; color: var(--foreground);">Detailed Review</h3>
           <div id="review-list">
             <!-- Rendered dynamically -->
           </div>
@@ -255,8 +378,8 @@
 
         <div class="modal-footer">
           <div class="modal-footer-left">
-            <button id="btn-clear-bank" class="btn-danger hidden">
-              🗑️ Delete Bank
+            <button id="btn-clear-bank" class="btn-destructive hidden">
+              Delete Bank
             </button>
           </div>
           <div class="modal-footer-right">
@@ -264,7 +387,7 @@
               Cancel
             </button>
             <button id="btn-save-bank" class="btn-primary" disabled>
-              💾 Save & Load Bank
+              Save & Load Bank
             </button>
           </div>
         </div>

@@ -55,9 +55,18 @@ class QuizApp {
     // Modal active tab
     this.activeModalTab = 'quiz'; // 'quiz' | 'flashcard'
 
+    // Pause state
+    this.isPaused = false;
+
+    // Text Zoom Font Scaling
+    this.fontScaleLevels = [0.85, 0.92, 1.0, 1.15, 1.30, 1.45];
+    this.fontScaleIndex = 2; // Default 1.0
+    this.storageKeyFontScale = 'quiz_drill_font_scale';
+
     // DOM Elements & Theme
     this.initDOMElements();
     this.initTheme();
+    this.initFontScale();
     this.bindEvents();
 
     // Initialize Banks or Empty State
@@ -75,13 +84,31 @@ class QuizApp {
     this.btnManageBank = document.getElementById('btn-manage-bank');
     this.restartBtn = document.getElementById('btn-restart');
 
+    // Zoom & Pause Controls
+    this.btnZoomOut = document.getElementById('btn-zoom-out');
+    this.zoomLevelLabel = document.getElementById('zoom-level-label');
+    this.btnZoomIn = document.getElementById('btn-zoom-in');
+    this.btnPause = document.getElementById('btn-pause');
+    this.pauseBtnIcon = document.getElementById('pause-btn-icon');
+    this.pauseBtnText = document.getElementById('pause-btn-text');
+
     // Zen Fullscreen Bar
     this.fullscreenZenBar = document.getElementById('fullscreen-zen-bar');
     this.zenQuizTitle = document.getElementById('zen-quiz-title');
     this.zenCounter = document.getElementById('zen-counter');
+    this.btnZoomOutZen = document.getElementById('btn-zoom-out-zen');
+    this.zoomLevelLabelZen = document.getElementById('zoom-level-label-zen');
+    this.btnZoomInZen = document.getElementById('btn-zoom-in-zen');
+    this.btnPauseZen = document.getElementById('btn-pause-zen');
+    this.pauseZenIcon = document.getElementById('pause-zen-icon');
     this.zenStreak = document.getElementById('zen-streak');
     this.zenAccuracy = document.getElementById('zen-accuracy');
     this.btnExitZen = document.getElementById('btn-exit-zen');
+
+    // Pause Overlay
+    this.pauseOverlay = document.getElementById('pause-overlay');
+    this.pauseTimerDisplay = document.getElementById('pause-timer-display');
+    this.btnResumeSession = document.getElementById('btn-resume-session');
 
     // Empty State Views & Drop Zones
     this.emptyStateView = document.getElementById('empty-state-view');
@@ -135,6 +162,7 @@ class QuizApp {
 
     // 1. MCQ Quiz View
     this.quizView = document.getElementById('quiz-view');
+    this.questionContentArea = document.querySelector('.question-content-area');
     this.qQuizTitle = document.getElementById('q-quiz-title');
     this.qCounter = document.getElementById('q-counter');
     this.multiSelectBadge = document.getElementById('multi-select-badge');
@@ -275,7 +303,81 @@ class QuizApp {
     }
   }
 
+  initFontScale() {
+    const saved = localStorage.getItem(this.storageKeyFontScale);
+    if (saved !== null) {
+      const parsed = parseFloat(saved);
+      const foundIdx = this.fontScaleLevels.indexOf(parsed);
+      if (foundIdx !== -1) {
+        this.fontScaleIndex = foundIdx;
+      }
+    }
+    this.applyFontScale();
+  }
+
+  applyFontScale() {
+    const scale = this.fontScaleLevels[this.fontScaleIndex] || 1.0;
+    document.documentElement.style.setProperty('--font-scale', scale);
+    const labelText = Math.round(scale * 100) + '%';
+    if (this.zoomLevelLabel) this.zoomLevelLabel.textContent = labelText;
+    if (this.zoomLevelLabelZen) this.zoomLevelLabelZen.textContent = labelText;
+    localStorage.setItem(this.storageKeyFontScale, scale);
+  }
+
+  zoomIn() {
+    if (this.fontScaleIndex < this.fontScaleLevels.length - 1) {
+      this.fontScaleIndex++;
+      this.applyFontScale();
+    }
+  }
+
+  zoomOut() {
+    if (this.fontScaleIndex > 0) {
+      this.fontScaleIndex--;
+      this.applyFontScale();
+    }
+  }
+
+  togglePause() {
+    this.isPaused = !this.isPaused;
+    if (this.isPaused) {
+      if (this.timerInterval) {
+        clearInterval(this.timerInterval);
+        this.timerInterval = null;
+      }
+      if (this.pauseOverlay) this.pauseOverlay.classList.remove('hidden');
+      if (this.pauseTimerDisplay) {
+        this.pauseTimerDisplay.textContent = this.formatTime(this.timerSeconds);
+      }
+      if (this.pauseBtnIcon) this.pauseBtnIcon.textContent = '▶️';
+      if (this.pauseBtnText) this.pauseBtnText.textContent = 'Resume';
+      if (this.pauseZenIcon) this.pauseZenIcon.textContent = '▶️';
+    } else {
+      if (this.pauseOverlay) this.pauseOverlay.classList.add('hidden');
+      if (this.pauseBtnIcon) this.pauseBtnIcon.textContent = '⏸️';
+      if (this.pauseBtnText) this.pauseBtnText.textContent = 'Pause';
+      if (this.pauseZenIcon) this.pauseZenIcon.textContent = '⏸️';
+      if (!this.timerInterval) {
+        this.timerInterval = setInterval(() => {
+          this.timerSeconds++;
+          this.updateHUDTimer();
+        }, 1000);
+      }
+    }
+  }
+
   bindEvents() {
+    // Zoom Controls
+    if (this.btnZoomIn) this.btnZoomIn.addEventListener('click', () => this.zoomIn());
+    if (this.btnZoomOut) this.btnZoomOut.addEventListener('click', () => this.zoomOut());
+    if (this.btnZoomInZen) this.btnZoomInZen.addEventListener('click', () => this.zoomIn());
+    if (this.btnZoomOutZen) this.btnZoomOutZen.addEventListener('click', () => this.zoomOut());
+
+    // Pause Controls
+    if (this.btnPause) this.btnPause.addEventListener('click', () => this.togglePause());
+    if (this.btnPauseZen) this.btnPauseZen.addEventListener('click', () => this.togglePause());
+    if (this.btnResumeSession) this.btnResumeSession.addEventListener('click', () => this.togglePause());
+
     // Theme Events
     if (this.btnThemeToggle) {
       this.btnThemeToggle.addEventListener('click', () => this.toggleThemeMode());
@@ -404,17 +506,19 @@ class QuizApp {
   }
 
   toggleZenMode() {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch(() => {});
+    const isZen = document.body.classList.contains('fullscreen-mode');
+    if (!isZen) {
       document.body.classList.add('fullscreen-mode');
+      if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      }
     } else {
-      document.exitFullscreen().catch(() => {});
-      document.body.classList.remove('fullscreen-mode');
+      this.exitZenMode();
     }
   }
 
   exitZenMode() {
-    if (document.fullscreenElement) {
+    if (document.fullscreenElement && document.exitFullscreen) {
       document.exitFullscreen().catch(() => {});
     }
     document.body.classList.remove('fullscreen-mode');
@@ -422,7 +526,11 @@ class QuizApp {
 
   onFullscreenChange() {
     const isFs = !!document.fullscreenElement;
-    document.body.classList.toggle('fullscreen-mode', isFs);
+    if (isFs) {
+      document.body.classList.add('fullscreen-mode');
+    } else {
+      document.body.classList.remove('fullscreen-mode');
+    }
   }
 
   setupDragAndDrop() {
@@ -825,8 +933,14 @@ class QuizApp {
   startSession() {
     if (this.autoAdvanceTimeout) clearTimeout(this.autoAdvanceTimeout);
 
-    // Reset Timer
+    // Reset Timer & Pause State
     this.timerSeconds = 0;
+    this.isPaused = false;
+    if (this.pauseOverlay) this.pauseOverlay.classList.add('hidden');
+    if (this.pauseBtnIcon) this.pauseBtnIcon.textContent = '⏸️';
+    if (this.pauseBtnText) this.pauseBtnText.textContent = 'Pause';
+    if (this.pauseZenIcon) this.pauseZenIcon.textContent = '⏸️';
+
     if (this.timerInterval) clearInterval(this.timerInterval);
     this.timerInterval = setInterval(() => {
       this.timerSeconds++;
@@ -1131,8 +1245,17 @@ class QuizApp {
       this.multiSelectBadge.classList.add('hidden');
     }
 
+    // Reset scroll in question area so content begins at top
+    if (this.questionContentArea) {
+      this.questionContentArea.scrollTop = 0;
+    }
+
+    // Toggle 2-column grid layout for questions with 5 or more options
+    const hasManyOptions = q.options && q.options.length >= 5;
+    this.optionsList.classList.toggle('grid-options', hasManyOptions);
+
     this.optionsList.innerHTML = '';
-    const optionKeys = ['D', 'F', 'J', 'K', 'L', ';'];
+    const optionKeys = ['D', 'F', 'J', 'K', 'L', ';', '7', '8', '9', '0'];
 
     q.options.forEach((optText, index) => {
       const btn = document.createElement('button');
@@ -1788,6 +1911,45 @@ class QuizApp {
 
     const key = e.key.toUpperCase();
 
+    // If session is paused, allow only P, Space, or Enter to resume
+    if (this.isPaused) {
+      if (key === 'P' || e.code === 'Space' || key === 'ENTER') {
+        e.preventDefault();
+        this.togglePause();
+      }
+      return;
+    }
+
+    // Pause toggle: P
+    if (key === 'P' && !e.ctrlKey && !e.metaKey) {
+      e.preventDefault();
+      this.togglePause();
+      return;
+    }
+
+    // Text Zoom Out: [
+    if (e.key === '[' && !e.ctrlKey && !e.metaKey) {
+      e.preventDefault();
+      this.zoomOut();
+      return;
+    }
+
+    // Text Zoom In: ]
+    if (e.key === ']' && !e.ctrlKey && !e.metaKey) {
+      e.preventDefault();
+      this.zoomIn();
+      return;
+    }
+
+    // Escape exits Zen mode
+    if (e.key === 'Escape') {
+      if (document.body.classList.contains('fullscreen-mode')) {
+        e.preventDefault();
+        this.exitZenMode();
+        return;
+      }
+    }
+
     // Fullscreen shortcut: Shift+F
     if (e.shiftKey && key === 'F') {
       e.preventDefault();
@@ -1862,7 +2024,11 @@ class QuizApp {
         'J': 2,
         'K': 3,
         'L': 4,
-        ';': 5
+        ';': 5,
+        '7': 6,
+        '8': 7,
+        '9': 8,
+        '0': 9
       };
 
       if (keyToOptionIndex[key] !== undefined) {

@@ -55,6 +55,19 @@
           </button>
         </div>
 
+        <!-- Zoom Font Controls -->
+        <div class="zoom-controls" title="Adjust Text Size ([ or ])">
+          <button id="btn-zoom-out" class="btn-secondary zoom-btn" title="Decrease Text Size ([)">A−</button>
+          <span id="zoom-level-label" class="zoom-level-label">100%</span>
+          <button id="btn-zoom-in" class="btn-secondary zoom-btn" title="Increase Text Size (])">A+</button>
+        </div>
+
+        <!-- Pause / Resume Session -->
+        <button id="btn-pause" class="btn-secondary" title="Pause / Resume Study Session (Press P)">
+          <span id="pause-btn-icon">⏸️</span>
+          <span id="pause-btn-text">Pause</span>
+        </button>
+
         <!-- Zen Mode Toggle -->
         <button id="btn-fullscreen" class="btn-outline" title="Toggle Fullscreen Zen Mode (Shift+F)">
           <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -153,6 +166,15 @@
           <span id="zen-counter" class="zen-counter">1 / 100</span>
         </div>
         <div class="zen-meta-right">
+          <div class="zoom-controls zoom-controls-zen" title="Adjust Text Size ([ or ])">
+            <button id="btn-zoom-out-zen" class="btn-ghost btn-sm zoom-btn" title="Decrease Text Size ([)">A−</button>
+            <span id="zoom-level-label-zen" class="zoom-level-label">100%</span>
+            <button id="btn-zoom-in-zen" class="btn-ghost btn-sm zoom-btn" title="Increase Text Size (])">A+</button>
+          </div>
+          <button id="btn-pause-zen" class="btn-ghost btn-sm" title="Pause / Resume (P)">
+            <span id="pause-zen-icon">⏸️</span>
+            <span>Pause</span>
+          </button>
           <span id="zen-streak" class="zen-pill">0🔥</span>
           <span id="zen-accuracy" class="zen-pill">100%</span>
           <button id="btn-exit-zen" class="btn-ghost btn-sm" title="Exit Zen Mode (Esc)">
@@ -577,6 +599,21 @@
         </div>
       </div>
     </dialog>
+
+    <!-- PAUSE OVERLAY (Frozen study session) -->
+    <div id="pause-overlay" class="pause-overlay hidden">
+      <div class="pause-card">
+        <div class="pause-icon">⏸️</div>
+        <h2 class="pause-title">Session Paused</h2>
+        <p class="pause-subtitle">Your timer is frozen. Take a breath and resume whenever you're ready.</p>
+        <div class="pause-timer-badge">
+          Elapsed Time: <strong id="pause-timer-display">00:00</strong>
+        </div>
+        <button id="btn-resume-session" class="btn-primary btn-resume">
+          ▶️ Resume Study (P)
+        </button>
+      </div>
+    </div>
 
   </div>
 

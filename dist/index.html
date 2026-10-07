@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Quiz Drill Memorizer - Speed Drill & Flashcard Practice</title>
   <meta name="description" content="High-speed quiz memorization, exam simulation, and interactive flashcard practice tool.">
-  <script type="module" crossorigin src="/assets/index-eLMagxi5.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/index-I4fZ5Wp2.css">
+  <script type="module" crossorigin src="/assets/index-Cl4yJyg1.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-Cv_HB066.css">
 </head>
 <body>
   <div class="app-container">
@@ -55,6 +55,19 @@
             <span class="theme-name">Orange</span>
           </button>
         </div>
+
+        <!-- Zoom Font Controls -->
+        <div class="zoom-controls" title="Adjust Text Size ([ or ])">
+          <button id="btn-zoom-out" class="btn-secondary zoom-btn" title="Decrease Text Size ([)">A−</button>
+          <span id="zoom-level-label" class="zoom-level-label">100%</span>
+          <button id="btn-zoom-in" class="btn-secondary zoom-btn" title="Increase Text Size (])">A+</button>
+        </div>
+
+        <!-- Pause / Resume Session -->
+        <button id="btn-pause" class="btn-secondary" title="Pause / Resume Study Session (Press P)">
+          <span id="pause-btn-icon">⏸️</span>
+          <span id="pause-btn-text">Pause</span>
+        </button>
 
         <!-- Zen Mode Toggle -->
         <button id="btn-fullscreen" class="btn-outline" title="Toggle Fullscreen Zen Mode (Shift+F)">
@@ -154,6 +167,15 @@
           <span id="zen-counter" class="zen-counter">1 / 100</span>
         </div>
         <div class="zen-meta-right">
+          <div class="zoom-controls zoom-controls-zen" title="Adjust Text Size ([ or ])">
+            <button id="btn-zoom-out-zen" class="btn-ghost btn-sm zoom-btn" title="Decrease Text Size ([)">A−</button>
+            <span id="zoom-level-label-zen" class="zoom-level-label">100%</span>
+            <button id="btn-zoom-in-zen" class="btn-ghost btn-sm zoom-btn" title="Increase Text Size (])">A+</button>
+          </div>
+          <button id="btn-pause-zen" class="btn-ghost btn-sm" title="Pause / Resume (P)">
+            <span id="pause-zen-icon">⏸️</span>
+            <span>Pause</span>
+          </button>
           <span id="zen-streak" class="zen-pill">0🔥</span>
           <span id="zen-accuracy" class="zen-pill">100%</span>
           <button id="btn-exit-zen" class="btn-ghost btn-sm" title="Exit Zen Mode (Esc)">
@@ -578,6 +600,21 @@
         </div>
       </div>
     </dialog>
+
+    <!-- PAUSE OVERLAY (Frozen study session) -->
+    <div id="pause-overlay" class="pause-overlay hidden">
+      <div class="pause-card">
+        <div class="pause-icon">⏸️</div>
+        <h2 class="pause-title">Session Paused</h2>
+        <p class="pause-subtitle">Your timer is frozen. Take a breath and resume whenever you're ready.</p>
+        <div class="pause-timer-badge">
+          Elapsed Time: <strong id="pause-timer-display">00:00</strong>
+        </div>
+        <button id="btn-resume-session" class="btn-primary btn-resume">
+          ▶️ Resume Study (P)
+        </button>
+      </div>
+    </div>
 
   </div>
 
